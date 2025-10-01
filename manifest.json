@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Meet-Actions",
+  "version": "1.0.0",
+  "description": "Real-time action item extraction from Google Meet conversations",
+  
+  "permissions": [
+    "tabCapture",
+    "scripting",
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://api.assemblyai.com/*",
+    "https://api.cerebras.ai/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content_script.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Meet-Actions Controller"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["https://meet.google.com/*"]
+    }
+  ],
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
