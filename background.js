@@ -98,6 +98,27 @@ class SyncUpBackground {
           }
           sendResponse({ success: true });
           break;
+
+        case 'QUESTION_ASKED':
+          // Handle instant question with meeting context
+          console.log('═══════════════════════════════════════');
+          console.log('📨 QUESTION_ASKED MESSAGE RECEIVED');
+          console.log('Has question?', !!message.question);
+          console.log('Has context?', !!message.meetingContext);
+          console.log('Question:', message.question);
+          console.log('Context length:', message.meetingContext?.length);
+          console.log('═══════════════════════════════════════');
+          
+          if (message.question && message.meetingContext) {
+            console.log('❓ BACKGROUND: Question asked:', message.question);
+            console.log('📋 BACKGROUND: Meeting context length:', message.meetingContext.length);
+            await this.handleInstantQuestion(message.question, message.meetingContext);
+            console.log('✅ BACKGROUND: Instant response generated');
+          } else {
+            console.error('❌ Missing question or context');
+          }
+          sendResponse({ success: true });
+          break;
       }
     } catch (error) {
       console.error('Background script error:', error);
@@ -582,6 +603,100 @@ class SyncUpBackground {
     if (this.demoInterval) {
       clearInterval(this.demoInterval);
       this.demoInterval = null;
+    }
+  }
+
+  /**
+   * Handle instant question with meeting context
+   */
+  async handleInstantQuestion(question, meetingContext) {
+    try {
+      console.log('🤔 Generating instant response for question:', question);
+      
+      const response = await fetch(this.CEREBRAS_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.CEREBRAS_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama3.1-8b',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an intelligent meeting assistant. You have access to the meeting transcript and can answer questions about the discussion.
+
+              Provide helpful, accurate answers based on the meeting context. If the answer isn't in the context, say so and provide general helpful information.
+              
+              Format your response as JSON:
+              {
+                "answer": "Direct answer to the question",
+                "context": "Relevant information from the meeting that supports this answer",
+                "suggestions": ["Related point 1", "Related point 2"]
+              }
+              
+              Be concise but thorough. Return ONLY valid JSON.`
+            },
+            {
+              role: 'user',
+              content: `Meeting Context: "${meetingContext}"
+              
+              Question: ${question}`
+            }
+          ],
+          temperature: 0.4,
+          max_tokens: 500
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Cerebras API error for question:', response.status, errorText);
+        throw new Error(`Cerebras API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      if (content) {
+        console.log('✅ Instant response generated:', content);
+        const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+        const responseData = JSON.parse(cleanContent);
+        
+        // Create instant response card
+        const card = {
+          id: Date.now() + Math.random(),
+          topic: `💬 Q: ${question}`,
+          timestamp: new Date().toLocaleTimeString(),
+          summary: responseData.answer,
+          keyPoints: responseData.suggestions || [],
+          useCase: responseData.context || 'Based on the current meeting discussion',
+          resources: ['Ask another question by saying "Hey SyncUp"'],
+          expanded: true, // Auto-expand instant responses
+          isInstantResponse: true
+        };
+        
+        this.addCard(card);
+        console.log('✅ Instant response card added');
+      }
+      
+    } catch (error) {
+      console.error('Failed to generate instant response:', error);
+      
+      // Fallback card if API fails
+      const fallbackCard = {
+        id: Date.now(),
+        topic: `💬 Q: ${question}`,
+        timestamp: new Date().toLocaleTimeString(),
+        summary: 'I heard your question but encountered an error generating a response. Please try again.',
+        keyPoints: ['Make sure you have a stable internet connection', 'Try rephrasing your question'],
+        useCase: 'Error occurred while processing your question',
+        resources: ['Say " SyncUp" to try again'],
+        expanded: true,
+        isInstantResponse: true
+      };
+      
+      this.addCard(fallbackCard);
     }
   }
 }

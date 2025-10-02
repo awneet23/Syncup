@@ -12,6 +12,8 @@ class SyncUpSidebar {
     this.recognition = null;
     this.transcriptBuffer = '';
     this.bufferInterval = null;
+    this.meetingTranscript = ''; // Store full meeting transcript for context
+    this.isListeningForQuestion = false; // Wake word detected, listening for question
     
     this.init();
   }
@@ -182,10 +184,13 @@ class SyncUpSidebar {
 
     // Generate cards HTML
     const cardsHTML = this.contextualCards.map((card, index) => `
-      <div class="context-card ${card.expanded ? 'expanded' : ''}" data-index="${index}" data-id="${card.id}">
+      <div class="context-card ${card.expanded ? 'expanded' : ''}" 
+           data-index="${index}" 
+           data-id="${card.id}"
+           ${card.isInstantResponse ? 'data-instant="true"' : ''}>
         <div class="card-header" data-card-index="${index}">
           <div class="card-title-row">
-            <span class="card-icon">📌</span>
+            <span class="card-icon">${card.isInstantResponse ? '💬' : '📌'}</span>
             <h4 class="card-topic">${this.escapeHtml(card.topic)}</h4>
             <span class="expand-icon">${card.expanded ? '▼' : '▶'}</span>
           </div>
@@ -198,7 +203,7 @@ class SyncUpSidebar {
           
           ${card.keyPoints && card.keyPoints.length > 0 ? `
             <div class="card-section">
-              <h5>Key Points</h5>
+              <h5>${card.isInstantResponse ? 'Related Points' : 'Key Points'}</h5>
               <ul class="key-points-list">
                 ${card.keyPoints.map(point => `<li>${this.escapeHtml(point)}</li>`).join('')}
               </ul>
@@ -207,7 +212,7 @@ class SyncUpSidebar {
           
           ${card.useCase ? `
             <div class="card-section">
-              <h5>Use Case</h5>
+              <h5>${card.isInstantResponse ? 'Context' : 'Use Case'}</h5>
               <p class="use-case-text">${this.escapeHtml(card.useCase)}</p>
             </div>
           ` : ''}
@@ -421,15 +426,72 @@ class SyncUpSidebar {
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
+        const isFinal = event.results[i].isFinal;
         
-        if (event.results[i].isFinal) {
-          // Add to buffer instead of sending immediately
+        // LOG EVERYTHING - Show all transcripts in real-time
+        console.log('═══════════════════════════════════════');
+        console.log('📝 TRANSCRIPT:', transcript);
+        console.log('🔒 Is Final:', isFinal);
+        console.log('═══════════════════════════════════════');
+        
+        if (isFinal) {
+          const lowerTranscript = transcript.toLowerCase().trim();
+          
+          console.log('🔍 Checking for wake word in:', lowerTranscript);
+          
+          // Check for wake word "Hey SyncUp"
+          const hasWakeWord = lowerTranscript.includes('hey sync up') || 
+                             lowerTranscript.includes('hey syncup') ||
+                             lowerTranscript.includes('a sync up') ||
+                             lowerTranscript.includes('hey ') ||
+                             lowerTranscript.includes('hello') ||
+                             lowerTranscript.includes('hello car') ||
+                             lowerTranscript.includes('hello world') ||
+                             lowerTranscript.includes('hello raj');
+        
+          console.log('🎯 Wake word detected?', hasWakeWord);
+          
+          if (hasWakeWord) {
+            console.log('🎯 WAKE WORD DETECTED: Hey SyncUp!');
+            console.log('🎤 Now listening for your question...');
+            this.isListeningForQuestion = true;
+            this.showWakeWordIndicator();
+            
+            // Extract question if it's in the same sentence
+            const questionPart = transcript.replace(/hey sync ?up/i, '')
+                                          .replace(/a sync ?up/i, '')
+                                          .replace(/hey sink ?up/i, '')
+                                          .trim();
+            console.log('❓ Question part extracted:', questionPart);
+            
+            if (questionPart.length > 5) {
+              console.log('✅ Question found in same sentence, processing...');
+              this.handleQuestion(questionPart);
+              this.isListeningForQuestion = false;
+            } else {
+              console.log('⏳ Waiting for question in next sentence...');
+            }
+            continue;
+          }
+          
+          // If we're listening for a question after wake word
+          if (this.isListeningForQuestion) {
+            console.log('❓ Question captured after wake word:', transcript);
+            this.handleQuestion(transcript);
+            this.isListeningForQuestion = false;
+            this.hideWakeWordIndicator();
+            continue;
+          }
+          
+          // Normal transcript buffering for regular cards
           this.transcriptBuffer += transcript + ' ';
+          this.meetingTranscript += transcript + ' '; // Keep full meeting context
           console.log('✅ Added to buffer:', transcript);
-          console.log('📝 Current buffer:', this.transcriptBuffer);
+          console.log('📝 Current buffer length:', this.transcriptBuffer.length);
+          console.log('📚 Meeting transcript length:', this.meetingTranscript.length);
         } else {
           interimTranscript += transcript;
-          console.log('⏳ Interim transcript:', transcript);
+          console.log('⏳ Interim (not final):', transcript);
         }
       }
     };
@@ -481,6 +543,54 @@ class SyncUpSidebar {
       this.recognition.stop();
       console.log('🔇 Speech recognition stopped');
       clearInterval(this.bufferInterval);
+    }
+  }
+
+  handleQuestion(question) {
+    console.log('🤔 Handling question:', question);
+    console.log('📚 Meeting context available:', this.meetingTranscript.length, 'characters');
+    
+    // Send question with meeting context to background script
+    chrome.runtime.sendMessage({
+      type: 'QUESTION_ASKED',
+      question: question,
+      meetingContext: this.meetingTranscript
+    }, (response) => {
+      if (response && response.success) {
+        console.log('✅ Question sent to background successfully');
+      } else if (response && response.error) {
+        console.error('❌ Error sending question:', response.error);
+      }
+    });
+  }
+
+  /**
+   * Show visual indicator that wake word was detected
+   */
+  showWakeWordIndicator() {
+    console.log('� SHOWING WAKE WORD INDICATOR');
+    const statusText = document.querySelector('.status-text');
+    if (statusText) {
+      statusText.textContent = '🎤 Listening for your question...';
+      statusText.style.color = '#34a853';
+      console.log('✅ Status text updated to show listening for question');
+    } else {
+      console.error('❌ Could not find status text element');
+    }
+  }
+
+  /**
+   * Hide wake word indicator
+   */
+  hideWakeWordIndicator() {
+    console.log('� HIDING WAKE WORD INDICATOR');
+    const statusText = document.querySelector('.status-text');
+    if (statusText) {
+      statusText.textContent = 'Listening';
+      statusText.style.color = '';
+      console.log('✅ Status text reset to normal');
+    } else {
+      console.error('❌ Could not find status text element');
     }
   }
 }

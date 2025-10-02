@@ -186,6 +186,18 @@
   border-color: #8ab4f8;
 }
 
+.context-card[data-instant="true"] {
+  background: linear-gradient(135deg, #1a2332 0%, #292a2d 100%);
+  border: 2px solid #34a853;
+  box-shadow: 0 0 20px rgba(52, 168, 83, 0.3);
+  animation: pulseGlow 2s ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(52, 168, 83, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(52, 168, 83, 0.5); }
+}
+
 .card-header {
   padding: 14px 16px;
   cursor: pointer;
