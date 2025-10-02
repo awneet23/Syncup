@@ -10,6 +10,8 @@ class SyncUpSidebar {
     this.sidebarElement = null;
     this.isRecording = false;
     this.recognition = null;
+    this.transcriptBuffer = '';
+    this.bufferInterval = null;
     
     this.init();
   }
@@ -384,8 +386,30 @@ class SyncUpSidebar {
     
     console.log('✅ Speech recognition configured');
     console.log('📢 Browser will request microphone permission...');
+    console.log('⏱️ Cards will be generated every 15 seconds based on conversation');
     
-    let finalTranscript = '';
+    // Clear any existing buffer
+    this.transcriptBuffer = '';
+    
+    // Set up interval to process buffer every 15 seconds
+    this.bufferInterval = setInterval(() => {
+      if (this.transcriptBuffer.trim().length > 0) {
+        console.log('⏰ 15 seconds elapsed - Processing conversation:', this.transcriptBuffer);
+        
+        // Send accumulated transcript to background
+        chrome.runtime.sendMessage({
+          type: 'TRANSCRIPT_RECEIVED',
+          transcript: this.transcriptBuffer.trim()
+        }, (response) => {
+          console.log('📤 15-second conversation batch sent to background');
+        });
+        
+        // Clear buffer for next 15 seconds
+        this.transcriptBuffer = '';
+      } else {
+        console.log('⏰ 15 seconds elapsed - No conversation detected');
+      }
+    }, 15000); // 15 seconds
     
     this.recognition.onstart = () => {
       console.log('🎤 Speech recognition STARTED - Microphone is active');
@@ -399,16 +423,10 @@ class SyncUpSidebar {
         const transcript = event.results[i][0].transcript;
         
         if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-          console.log('✅ Final transcript:', transcript);
-          
-          // Send to background script for processing
-          chrome.runtime.sendMessage({
-            type: 'TRANSCRIPT_RECEIVED',
-            transcript: transcript
-          }, (response) => {
-            console.log('📤 Transcript sent to background script');
-          });
+          // Add to buffer instead of sending immediately
+          this.transcriptBuffer += transcript + ' ';
+          console.log('✅ Added to buffer:', transcript);
+          console.log('📝 Current buffer:', this.transcriptBuffer);
         } else {
           interimTranscript += transcript;
           console.log('⏳ Interim transcript:', transcript);
@@ -462,6 +480,7 @@ class SyncUpSidebar {
     if (this.recognition) {
       this.recognition.stop();
       console.log('🔇 Speech recognition stopped');
+      clearInterval(this.bufferInterval);
     }
   }
 }
