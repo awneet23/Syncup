@@ -194,7 +194,7 @@ class SyncUpBackground {
     if (!text.trim()) return;
 
     try {
-      console.log('Extracting topics with Cerebras + Llama...');
+      console.log('🔍 CEREBRAS: Extracting topics from:', text);
       
       // Use Cerebras API with Meta Llama
       const topicsResponse = await fetch(this.CEREBRAS_API_URL, {
@@ -208,48 +208,65 @@ class SyncUpBackground {
           messages: [
             {
               role: 'system',
-              content: `You are an AI that extracts topics and concepts from conversation transcripts. 
-              Return ONLY a JSON array of topics mentioned. Each topic should be a single word or short phrase.
-              Extract ANY topic mentioned - technical, travel, food, business, personal, etc.
-              Example: ["Docker", "Paris", "Machine Learning", "Budget Planning", "Italian Food"]
+              content: `You are an expert at identifying key topics and concepts from meeting conversations.
               
-              Return 1-3 most important topics from the text.`
+              Analyze the conversation and extract 1-3 most important topics that would benefit from contextual information.
+              Focus on:
+              - Technical terms, tools, frameworks, or technologies mentioned
+              - Business concepts, methodologies, or strategies discussed
+              - Places, destinations, or locations referenced
+              - Products, services, or companies mentioned
+              - Any specific subject matter that requires explanation
+              
+              Return ONLY a JSON array of topic strings. Each topic should be specific and meaningful.
+              Example: ["Docker Containerization", "Kubernetes Orchestration", "Paris Travel Guide"]
+              
+              Do NOT include generic words like "discuss", "need", "should". Only extract substantive topics.`
             },
             {
               role: 'user',
-              content: `Extract topics from: "${text}"`
+              content: `Extract the most important topics from this conversation: "${text}"`
             }
           ],
           temperature: 0.3,
-          max_tokens: 100
+          max_tokens: 150
         })
       });
 
+      console.log('📡 CEREBRAS: API response status:', topicsResponse.status);
+
       if (!topicsResponse.ok) {
         const errorText = await topicsResponse.text();
-        console.error('Cerebras API error:', topicsResponse.status, errorText);
+        console.error('❌ CEREBRAS: API error:', topicsResponse.status, errorText);
         throw new Error(`Cerebras API error: ${topicsResponse.status}`);
       }
 
       const topicsData = await topicsResponse.json();
       const topicsContent = topicsData.choices?.[0]?.message?.content;
       
+      console.log('✅ CEREBRAS: Raw response:', topicsContent);
+      
       if (topicsContent) {
-        console.log('Raw Cerebras response:', topicsContent);
         const cleanContent = topicsContent.replace(/```json\n?|\n?```/g, '').trim();
+        console.log('🧹 CEREBRAS: Cleaned content:', cleanContent);
+        
         const topics = JSON.parse(cleanContent);
+        console.log('📋 CEREBRAS: Extracted topics:', topics);
         
         // Generate cards for each new topic
         for (const topic of topics) {
           if (!this.processedTopics.has(topic.toLowerCase())) {
+            console.log(`🎯 CEREBRAS: Generating card for new topic: ${topic}`);
             await this.generateContextualCard(topic);
             this.processedTopics.add(topic.toLowerCase());
+          } else {
+            console.log(`⏭️ CEREBRAS: Skipping duplicate topic: ${topic}`);
           }
         }
       }
       
     } catch (error) {
-      console.error('Failed to extract topics:', error);
+      console.error('❌ CEREBRAS: Failed to extract topics:', error);
       console.error('Error details:', error.message);
     }
   }
@@ -320,13 +337,7 @@ class SyncUpBackground {
     try {
       console.log(`Generating contextual card for: ${topic}`);
       
-      if (!this.CEREBRAS_API_KEY) {
-        // No API key, use demo mode
-        this.addDemoCard(topic);
-        return;
-      }
-
-      // Real mode: Use Cerebras API to generate detailed information
+      // Use Cerebras API to generate detailed information
       const response = await fetch(this.CEREBRAS_API_URL, {
         method: 'POST',
         headers: {
@@ -338,26 +349,48 @@ class SyncUpBackground {
           messages: [
             {
               role: 'system',
-              content: `You are a helpful technical assistant. Provide concise, accurate information about technical topics.
-              Format your response as JSON with this structure:
+              content: `You are an expert assistant providing detailed, practical contextual information.
+
+              When given a topic, provide comprehensive information in this EXACT JSON format:
               {
-                "summary": "2-3 sentence overview",
-                "keyPoints": ["point 1", "point 2", "point 3"],
-                "useCase": "When and why to use this",
-                "resources": ["resource 1", "resource 2"]
-              }`
+                "summary": "A clear 2-3 sentence explanation of what this topic is and why it matters",
+                "keyPoints": [
+                  "First important point or feature",
+                  "Second important point or feature", 
+                  "Third important point or feature"
+                ],
+                "useCase": "Specific practical scenarios where this is used or relevant, with concrete examples",
+                "resources": [
+                  "Specific resource, tool, or reference (not generic)",
+                  "Another specific resource or next step",
+                  "Third specific resource or learning material"
+                ]
+              }
+
+              Guidelines:
+              - Be specific and practical, not generic
+              - Include real-world applications and examples
+              - Provide actionable information
+              - For technical topics: explain benefits, use cases, and getting started steps
+              - For places: include key attractions, best times to visit, practical tips
+              - For concepts: explain clearly with real examples
+              - Resources should be specific (actual tools, websites, or actions), not vague suggestions
+              
+              Return ONLY valid JSON, no markdown formatting.`
             },
             {
               role: 'user',
-              content: `Provide detailed information about ${topic} in the context of software development.`
+              content: `Provide detailed, practical information about: ${topic}`
             }
           ],
-          temperature: 0.3,
-          max_tokens: 800
+          temperature: 0.5,
+          max_tokens: 600
         })
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Cerebras API error for ${topic}:`, response.status, errorText);
         throw new Error(`Cerebras API error: ${response.status}`);
       }
 
@@ -365,11 +398,12 @@ class SyncUpBackground {
       const content = data.choices?.[0]?.message?.content;
       
       if (content) {
+        console.log(`Cerebras response for ${topic}:`, content);
         const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
         const cardData = JSON.parse(cleanContent);
         
         const card = {
-          id: Date.now(),
+          id: Date.now() + Math.random(), // Ensure unique IDs
           topic: topic,
           timestamp: new Date().toLocaleTimeString(),
           summary: cardData.summary,
@@ -384,8 +418,6 @@ class SyncUpBackground {
       
     } catch (error) {
       console.error(`Failed to generate card for ${topic}:`, error);
-      // Fallback to demo card
-      this.addDemoCard(topic);
     }
   }
 
