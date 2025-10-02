@@ -1,25 +1,26 @@
 /**
- * Meet-Actions Background Service Worker
- * Handles audio capture, transcription, and action item extraction
+ * SyncUp Background Service Worker
+ * Handles audio capture, Gemini transcription, and Cerebras contextual analysis
  */
 
-class MeetActionsBackground {
+class SyncUpBackground {
   constructor() {
     this.isRecording = false;
     this.currentStream = null;
-    this.actionItems = [];
-    this.assemblyAIWS = null;
-    this.lastTranscriptTime = 0;
+    this.contextualCards = [];
     this.transcriptBuffer = '';
-    this.mockTranscriptionStarted = false;
-    this.mockInterval = null;
+    this.lastProcessedTime = 0;
+    this.processedTopics = new Set();
+    this.audioContext = null;
+    this.mediaRecorder = null;
     
-    // API configurations - Replace with your actual API keys
-    this.ASSEMBLY_AI_API_KEY = '';
-    this.CEREBRAS_API_KEY = '';
+    // API configurations - User needs to add their keys
+    this.GEMINI_API_KEY = 'AIzaSyAE544iRSwjAlHjkIyCPkQdQA2fVLtQhfc'; // Add your Gemini API key here
+    this.CEREBRAS_API_KEY = 'csk-2xdh96vcp8hcw43w32cmttckypdj6e9evy5n5xv3pdkf386f'; // Add your Cerebras API key here
     this.CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
-    this.GEMINI_API_KEY = ''; // Add your Gemini API key
-    this.GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    
+    // Use real speech recognition instead of demo mode
+    this.USE_SPEECH_RECOGNITION = true;
     
     this.init();
   }
@@ -61,17 +62,18 @@ class MeetActionsBackground {
         case 'GET_STATUS':
           sendResponse({
             isRecording: this.isRecording,
-            actionItemsCount: this.actionItems.length
+            cardsCount: this.contextualCards.length
           });
           break;
 
-        case 'GET_ACTION_ITEMS':
-          sendResponse({ actionItems: this.actionItems });
+        case 'GET_CONTEXTUAL_CARDS':
+          sendResponse({ cards: this.contextualCards });
           break;
 
-        case 'CLEAR_ACTION_ITEMS':
-          this.actionItems = [];
-          this.broadcastToContentScript('CLEAR_ACTION_ITEMS');
+        case 'CLEAR_CARDS':
+          this.contextualCards = [];
+          this.processedTopics.clear();
+          this.broadcastToContentScript('CLEAR_CARDS');
           sendResponse({ success: true });
           break;
 
@@ -80,9 +82,21 @@ class MeetActionsBackground {
           this.sendToContentScript(sender.tab.id, 'RECORDING_STATUS', {
             isRecording: this.isRecording
           });
-          this.sendToContentScript(sender.tab.id, 'NEW_ACTION_ITEMS', {
-            actionItems: this.actionItems
+          this.sendToContentScript(sender.tab.id, 'NEW_CARDS', {
+            cards: this.contextualCards
           });
+          break;
+
+        case 'TRANSCRIPT_RECEIVED':
+          // Process transcript from content script's speech recognition
+          if (message.transcript) {
+            console.log('📥 BACKGROUND: Received transcript:', message.transcript);
+            await this.processTranscript(message.transcript);
+            console.log('✅ BACKGROUND: Transcript processed');
+          } else {
+            console.warn('⚠️ BACKGROUND: Empty transcript received');
+          }
+          sendResponse({ success: true });
           break;
       }
     } catch (error) {
@@ -100,71 +114,23 @@ class MeetActionsBackground {
     }
 
     try {
-      // Find Google Meet tabs (prefer audible ones)
+      // Find Google Meet tabs
       let tabs = await chrome.tabs.query({ 
-        url: 'https://meet.google.com/*',
-        audible: true 
+        url: 'https://meet.google.com/*'
       });
       
       if (tabs.length === 0) {
-        // Fallback: check for any Google Meet tab
-        tabs = await chrome.tabs.query({ 
-          url: 'https://meet.google.com/*' 
-        });
-        
-        if (tabs.length === 0) {
-          throw new Error('No Google Meet tab found. Please join a meeting first.');
-        }
+        throw new Error('No Google Meet tab found. Please join a meeting first.');
       }
-
-      const activeMeetTab = tabs[0];
-      
-      // Try modern tabCapture API approaches
-      try {
-        // Method 1: Try chrome.tabCapture.capture (if available)
-        if (chrome.tabCapture.capture) {
-          this.currentStream = await chrome.tabCapture.capture({
-            audio: true,
-            video: false
-          });
-        } 
-        // Method 2: Try getMediaStreamId approach
-        else if (chrome.tabCapture.getMediaStreamId) {
-          const streamId = await chrome.tabCapture.getMediaStreamId({
-            targetTabId: activeMeetTab.id
-          });
-          
-          if (streamId) {
-            // Since we can't use navigator.mediaDevices in service worker,
-            // we'll simulate audio capture for demo purposes
-            console.log('Audio stream ID obtained:', streamId);
-            this.currentStream = { id: streamId, getTracks: () => [] }; // Mock stream
-          }
-        }
-        
-        if (!this.currentStream) {
-          // Fallback: Use mock audio capture for demo
-          console.warn('Using mock audio capture for demonstration');
-          this.currentStream = { id: 'mock-stream', getTracks: () => [] };
-        }
-      } catch (tabCaptureError) {
-        console.warn('TabCapture not available, using mock audio for demo:', tabCaptureError);
-        this.currentStream = { id: 'mock-stream', getTracks: () => [] };
-      }
-
-      // Start AssemblyAI real-time transcription
-      await this.startAssemblyAITranscription();
 
       this.isRecording = true;
       
-      // Notify content script
-      this.broadcastToContentScript('RECORDING_STATUS', { isRecording: true });
-
-      console.log('Recording started successfully');
+      console.log('✅ Recording state set to true');
       return { success: true };
       
     } catch (error) {
       console.error('Failed to start recording:', error);
+      this.isRecording = false;
       return { error: error.message };
     }
   }
@@ -184,20 +150,13 @@ class MeetActionsBackground {
         this.currentStream = null;
       }
 
-      // Close AssemblyAI connection
-      if (this.assemblyAIWS) {
-        this.assemblyAIWS.close();
-        this.assemblyAIWS = null;
+      // Stop media recorder
+      if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+        this.mediaRecorder.stop();
+        this.mediaRecorder = null;
       }
 
       this.isRecording = false;
-      this.mockTranscriptionStarted = false;
-      
-      // Clear mock transcription interval
-      if (this.mockInterval) {
-        clearInterval(this.mockInterval);
-        this.mockInterval = null;
-      }
       
       // Notify content script
       this.broadcastToContentScript('RECORDING_STATUS', { isRecording: false });
@@ -212,292 +171,162 @@ class MeetActionsBackground {
   }
 
   /**
-   * Start transcription (now using Gemini-powered mock mode for demo)
+   * Process transcript to extract topics and generate contextual information
    */
-  async startAssemblyAITranscription() {
-    console.log('Starting Gemini-powered demo transcription mode...');
-    
-    // For hackathon demo, we'll use enhanced mock transcription
-    // with Gemini AI for action item extraction
-    this.startEnhancedMockTranscription();
-    return;
-    
-    try {
-      // Create WebSocket connection to AssemblyAI Universal Streaming API v3
-      const connectionParams = {
-        sampleRate: 16000,
-        formatTurns: true,
-        endOfTurnConfidenceThreshold: 0.7,
-        minEndOfTurnSilenceWhenConfident: 160,
-        maxTurnSilence: 2400,
-        keytermsPrompt: []
-      };
-      
-      // Build query string manually for browser compatibility
-      const queryParams = Object.entries(connectionParams)
-        .map(([key, value]) => `${key}=${encodeURIComponent(Array.isArray(value) ? JSON.stringify(value) : value)}`)
-        .join('&');
-      
-      // Add API key as authorization parameter for browser compatibility
-      const wsUrl = `wss://streaming.assemblyai.com/v3/ws?${queryParams}&authorization=${this.ASSEMBLY_AI_API_KEY}`;
-      
-      console.log(`Connecting to: wss://streaming.assemblyai.com/v3/ws?${queryParams}&authorization=***`);
-      
-      this.assemblyAIWS = new WebSocket(wsUrl);
-      
-      this.assemblyAIWS.onopen = () => {
-        console.log('AssemblyAI WebSocket connected to v3 API successfully!');
-        console.log('WebSocket ready for audio data');
-      };
-
-      this.assemblyAIWS.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleTranscriptionData(data);
-        } catch (error) {
-          console.error('Error parsing AssemblyAI message:', error);
-          console.error('Message data:', event.data);
-        }
-      };
-
-      this.assemblyAIWS.onerror = (error) => {
-        console.error('AssemblyAI WebSocket error:', error);
-        console.log('Falling back to mock transcription due to WebSocket error');
-        this.startMockTranscription();
-      };
-
-    } catch (error) {
-      console.error('Failed to start AssemblyAI transcription:', error);
-      console.log('Error details:', error.message);
-      console.log('Falling back to mock transcription due to API error');
-      this.startMockTranscription();
-    }
-  }
-
-  /**
-   * Process audio stream and send to AssemblyAI
-   * Note: Audio processing not available in service workers (Manifest V3)
-   * This would need to be implemented in content script with proper audio access
-   */
-  processAudioStream() {
-    console.log('Audio processing skipped - not available in service workers');
-    console.log('For real audio processing, this would need to be implemented in content script');
-    
-    // For now, just use mock transcription since audio processing 
-    // requires moving this logic to content script
-    if (!this.mockTranscriptionStarted) {
-      console.log('Starting mock transcription as fallback');
-      this.startMockTranscription();
-      this.mockTranscriptionStarted = true;
-    }
-  }
-
-  /**
-   * Handle transcription data from AssemblyAI Universal Streaming API v3
-   */
-  handleTranscriptionData(data) {
-    const msgType = data.type;
-    
-    if (msgType === 'Begin') {
-      const sessionId = data.id;
-      const expiresAt = data.expires_at;
-      console.log(`Session began: ID=${sessionId}, ExpiresAt=${new Date(expiresAt).toISOString()}`);
-      
-    } else if (msgType === 'Turn') {
-      const transcript = data.transcript || '';
-      const formatted = data.turn_is_formatted;
-      
-      if (transcript.trim()) {
-        console.log('Turn transcript:', transcript);
-        
-        if (formatted) {
-          // This is a complete, formatted turn - process for action items
-          this.extractActionItems(transcript);
-        } else {
-          // Partial transcript - accumulate in buffer
-          this.transcriptBuffer += transcript + ' ';
-          
-          // Process buffer periodically
-          const now = Date.now();
-          if (now - this.lastTranscriptTime > 30000 || this.transcriptBuffer.length > 1000) {
-            this.extractActionItems(this.transcriptBuffer);
-            this.transcriptBuffer = '';
-            this.lastTranscriptTime = now;
-          }
-        }
-      }
-      
-    } else if (msgType === 'Termination') {
-      const audioDuration = data.audio_duration_seconds;
-      const sessionDuration = data.session_duration_seconds;
-      console.log(`Session Terminated: Audio Duration=${audioDuration}s, Session Duration=${sessionDuration}s`);
-      
-      // Process any remaining transcript buffer
-      if (this.transcriptBuffer.trim()) {
-        this.extractActionItems(this.transcriptBuffer);
-        this.transcriptBuffer = '';
-      }
-      
-    } else {
-      console.log('Unknown message type:', msgType, data);
-    }
-  }
-
-  /**
-   * Enhanced mock transcription with realistic meeting scenarios
-   */
-  startEnhancedMockTranscription() {
-    console.log('Starting enhanced mock transcription with Gemini AI processing');
-    
-    const realisticMeetingTranscripts = [
-      "Alright everyone, let's start with the sprint review. Sarah, can you walk us through the user interface changes you completed this week?",
-      "The client feedback on the new dashboard is really positive. However, they want us to add export functionality by the end of next week. Mike, can you take ownership of that feature?",
-      "We're seeing some performance issues with the search function. The response time is too slow when users have large datasets. This needs to be our top priority for the next sprint.",
-      "Lisa, please schedule a meeting with the QA team to discuss the testing strategy for the mobile app release. We need to make sure all edge cases are covered before we ship.",
-      "The marketing team is asking for API documentation to be updated. David, since you worked on the new endpoints, can you coordinate with the technical writing team this week?",
-      "We've identified three critical bugs that need to be fixed before the demo next Friday. Tom, can you assign these to the appropriate team members and track the progress daily?",
-      "The integration with the payment gateway is almost complete. We just need to implement error handling for failed transactions. This should be done by Wednesday at the latest.",
-      "Let's not forget about the security audit that's happening next month. Jennifer, please make sure all the security requirements are documented and shared with the dev team."
-    ];
-    
-    let index = 0;
-    this.mockInterval = setInterval(async () => {
-      if (!this.isRecording) {
-        clearInterval(this.mockInterval);
-        return;
-      }
-      
-      if (index < realisticMeetingTranscripts.length) {
-        const transcript = realisticMeetingTranscripts[index];
-        console.log('Processing transcript:', transcript);
-        
-        // Use Gemini AI to extract action items
-        await this.extractActionItemsWithGemini(transcript);
-        index++;
-      } else {
-        // Restart with different scenarios
-        index = 0;
-      }
-    }, 12000); // Every 12 seconds for better demo pacing
-  }
-
-  /**
-   * Original mock transcription (fallback)
-   */
-  startMockTranscription() {
-    console.log('Starting basic mock transcription');
-    
-    const mockTranscripts = [
-      "Let's make sure we follow up on the client presentation by Friday",
-      "John, can you handle the database migration by next week?",
-      "We need to schedule a review meeting for the new features",
-      "Sarah should coordinate with the design team on the UI changes",
-      "Don't forget to update the documentation before the release",
-      "The testing phase needs to be completed by Thursday"
-    ];
-    
-    let index = 0;
-    this.mockInterval = setInterval(() => {
-      if (!this.isRecording) {
-        clearInterval(this.mockInterval);
-        return;
-      }
-      
-      if (index < mockTranscripts.length) {
-        this.extractActionItems(mockTranscripts[index]);
-        index++;
-      } else {
-        index = 0; // Restart
-      }
-    }, 10000);
-  }
-
-  /**
-   * Extract action items using Gemini AI
-   */
-  async extractActionItemsWithGemini(transcript) {
+  async processTranscript(transcript) {
     if (!transcript.trim()) return;
 
+    this.transcriptBuffer += transcript + ' ';
+    
+    // Process buffer periodically
+    const now = Date.now();
+    if (now - this.lastProcessedTime > 5000 || this.transcriptBuffer.length > 200) {
+      await this.extractTopicsAndGenerateCards(this.transcriptBuffer);
+      this.transcriptBuffer = '';
+      this.lastProcessedTime = now;
+    }
+  }
+
+  /**
+   * Extract topics using Cerebras + Llama and generate contextual cards
+   */
+  async extractTopicsAndGenerateCards(text) {
+    if (!text.trim()) return;
+
     try {
-      console.log('Extracting action items with Gemini AI...');
+      console.log('Extracting topics with Cerebras + Llama...');
       
-      const response = await fetch(`${this.GEMINI_API_URL}?key=${this.GEMINI_API_KEY}`, {
+      // Use Cerebras API with Meta Llama
+      const topicsResponse = await fetch(this.CEREBRAS_API_URL, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${this.CEREBRAS_API_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Extract action items from this meeting transcript. Return ONLY valid JSON in this exact format:
-
-{
-  "action_items": [
-    {
-      "action": "Brief description of the action item",
-      "assignee": "Person responsible (if mentioned, otherwise null)",
-      "priority": "high/medium/low",
-      "deadline": "extracted deadline (if mentioned, otherwise null)"
-    }
-  ]
-}
-
-If no action items are found, return: {"action_items": []}
-
-Meeting transcript: "${transcript}"`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 500
-          }
+          model: 'llama3.1-8b',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an AI that extracts topics and concepts from conversation transcripts. 
+              Return ONLY a JSON array of topics mentioned. Each topic should be a single word or short phrase.
+              Extract ANY topic mentioned - technical, travel, food, business, personal, etc.
+              Example: ["Docker", "Paris", "Machine Learning", "Budget Planning", "Italian Food"]
+              
+              Return 1-3 most important topics from the text.`
+            },
+            {
+              role: 'user',
+              content: `Extract topics from: "${text}"`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 100
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+      if (!topicsResponse.ok) {
+        const errorText = await topicsResponse.text();
+        console.error('Cerebras API error:', topicsResponse.status, errorText);
+        throw new Error(`Cerebras API error: ${topicsResponse.status}`);
       }
 
-      const data = await response.json();
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const topicsData = await topicsResponse.json();
+      const topicsContent = topicsData.choices?.[0]?.message?.content;
       
-      if (content) {
-        // Clean up the response (remove markdown formatting if present)
-        const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      if (topicsContent) {
+        console.log('Raw Cerebras response:', topicsContent);
+        const cleanContent = topicsContent.replace(/```json\n?|\n?```/g, '').trim();
+        const topics = JSON.parse(cleanContent);
         
-        try {
-          const parsed = JSON.parse(cleanContent);
-          if (parsed.action_items && Array.isArray(parsed.action_items)) {
-            this.addActionItems(parsed.action_items);
+        // Generate cards for each new topic
+        for (const topic of topics) {
+          if (!this.processedTopics.has(topic.toLowerCase())) {
+            await this.generateContextualCard(topic);
+            this.processedTopics.add(topic.toLowerCase());
           }
-        } catch (parseError) {
-          console.error('Failed to parse Gemini response:', parseError);
-          console.log('Raw response:', content);
-          // Fallback to mock extraction
-          this.processMockActionItems(transcript);
         }
       }
       
     } catch (error) {
-      console.error('Failed to extract action items with Gemini:', error);
-      console.log('Falling back to mock extraction');
-      this.processMockActionItems(transcript);
+      console.error('Failed to extract topics:', error);
+      console.error('Error details:', error.message);
     }
   }
 
   /**
-   * Extract action items using Cerebras API (fallback)
+   * Demo topic extraction using keyword matching
    */
-  async extractActionItems(transcript) {
-    if (!transcript.trim()) return;
+  async extractTopicsDemo(text) {
+    const techKeywords = {
+      'docker': 'Docker',
+      'kubernetes': 'Kubernetes',
+      'react': 'React',
+      'postgresql': 'PostgreSQL',
+      'mongodb': 'MongoDB',
+      'tensorflow': 'TensorFlow',
+      'github actions': 'GitHub Actions',
+      'aws lambda': 'AWS Lambda',
+      'python': 'Python',
+      'redis': 'Redis',
+      'jwt': 'JWT',
+      'rest': 'REST API',
+      'microservices': 'Microservices',
+      'ci/cd': 'CI/CD',
+      'travel': 'Travel',
+      'vacation': 'Vacation',
+      'hotel': 'Hotels',
+      'flight': 'Flights',
+      'tourism': 'Tourism',
+      'restaurant': 'Restaurants',
+      'food': 'Food & Dining',
+      'weather': 'Weather',
+      'budget': 'Budget Planning',
+      'itinerary': 'Travel Itinerary',
+      'destination': 'Travel Destinations',
+      'booking': 'Booking & Reservations',
+      'passport': 'Travel Documents',
+      'visa': 'Visa Requirements'
+    };
 
+    const lowerText = text.toLowerCase();
+    
+    // First check for exact keyword matches
+    for (const [keyword, topic] of Object.entries(techKeywords)) {
+      if (lowerText.includes(keyword) && !this.processedTopics.has(topic.toLowerCase())) {
+        await this.generateContextualCard(topic);
+        this.processedTopics.add(topic.toLowerCase());
+      }
+    }
+    
+    // Also extract capitalized words as potential topics (proper nouns)
+    const words = text.split(/\s+/);
+    for (const word of words) {
+      // Check if word starts with capital letter and is longer than 3 characters
+      if (word.length > 3 && /^[A-Z][a-z]+/.test(word)) {
+        const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+        if (cleanWord && !this.processedTopics.has(cleanWord.toLowerCase())) {
+          await this.generateContextualCard(cleanWord);
+          this.processedTopics.add(cleanWord.toLowerCase());
+        }
+      }
+    }
+  }
+
+  /**
+   * Generate contextual information card using Cerebras + Llama
+   */
+  async generateContextualCard(topic) {
     try {
-      if (!this.CEREBRAS_API_KEY || this.CEREBRAS_API_KEY === 'YOUR_CEREBRAS_API_KEY_HERE') {
-        console.warn('Cerebras API key not configured, using mock extraction');
-        this.processMockActionItems(transcript);
+      console.log(`Generating contextual card for: ${topic}`);
+      
+      if (!this.CEREBRAS_API_KEY) {
+        // No API key, use demo mode
+        this.addDemoCard(topic);
         return;
       }
 
+      // Real mode: Use Cerebras API to generate detailed information
       const response = await fetch(this.CEREBRAS_API_URL, {
         method: 'POST',
         headers: {
@@ -509,99 +338,173 @@ Meeting transcript: "${transcript}"`
           messages: [
             {
               role: 'system',
-              content: `You are an AI assistant that extracts action items from meeting transcripts. 
-              
-              Return ONLY valid JSON in this exact format:
+              content: `You are a helpful technical assistant. Provide concise, accurate information about technical topics.
+              Format your response as JSON with this structure:
               {
-                "action_items": [
-                  {
-                    "action": "Brief description of the action",
-                    "assignee": "Person responsible (if mentioned)",
-                    "priority": "high/medium/low",
-                    "timestamp": "current timestamp"
-                  }
-                ]
-              }
-              
-              If no action items are found, return: {"action_items": []}`
+                "summary": "2-3 sentence overview",
+                "keyPoints": ["point 1", "point 2", "point 3"],
+                "useCase": "When and why to use this",
+                "resources": ["resource 1", "resource 2"]
+              }`
             },
             {
               role: 'user',
-              content: `Extract action items from this meeting transcript: "${transcript}"`
+              content: `Provide detailed information about ${topic} in the context of software development.`
             }
           ],
-          temperature: 0.1,
-          max_tokens: 500
+          temperature: 0.3,
+          max_tokens: 800
         })
       });
+
+      if (!response.ok) {
+        throw new Error(`Cerebras API error: ${response.status}`);
+      }
 
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       
       if (content) {
-        const parsed = JSON.parse(content);
-        if (parsed.action_items && Array.isArray(parsed.action_items)) {
-          this.addActionItems(parsed.action_items);
-        }
+        const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+        const cardData = JSON.parse(cleanContent);
+        
+        const card = {
+          id: Date.now(),
+          topic: topic,
+          timestamp: new Date().toLocaleTimeString(),
+          summary: cardData.summary,
+          keyPoints: cardData.keyPoints || [],
+          useCase: cardData.useCase,
+          resources: cardData.resources || [],
+          expanded: false
+        };
+        
+        this.addCard(card);
       }
       
     } catch (error) {
-      console.error('Failed to extract action items:', error);
-      this.processMockActionItems(transcript);
+      console.error(`Failed to generate card for ${topic}:`, error);
+      // Fallback to demo card
+      this.addDemoCard(topic);
     }
   }
 
   /**
-   * Mock action item extraction for demo
+   * Add demo card with predefined information
    */
-  processMockActionItems(transcript) {
-    const keywords = {
-      'follow up': { priority: 'medium', action: 'Follow up on discussed items' },
-      'schedule': { priority: 'high', action: 'Schedule meeting or appointment' },
-      'review': { priority: 'medium', action: 'Review and provide feedback' },
-      'update': { priority: 'low', action: 'Update documentation or status' },
-      'complete': { priority: 'high', action: 'Complete assigned task' },
-      'coordinate': { priority: 'medium', action: 'Coordinate with team members' }
+  addDemoCard(topic) {
+    const demoCards = {
+      'Docker': {
+        summary: 'Docker is a platform for developing, shipping, and running applications in containers. It packages applications with all dependencies into standardized units.',
+        keyPoints: [
+          'Containerization platform for consistent environments',
+          'Lightweight alternative to virtual machines',
+          'Simplifies deployment and scaling'
+        ],
+        useCase: 'Use Docker when you need consistent development and production environments, microservices architecture, or simplified deployment workflows.',
+        resources: [
+          'Official Docker Documentation',
+          'Docker Hub for container images',
+          'Docker Compose for multi-container apps'
+        ]
+      },
+      'Kubernetes': {
+        summary: 'Kubernetes is an open-source container orchestration platform that automates deployment, scaling, and management of containerized applications.',
+        keyPoints: [
+          'Automated container orchestration and scaling',
+          'Self-healing and load balancing capabilities',
+          'Declarative configuration and version control'
+        ],
+        useCase: 'Use Kubernetes for managing large-scale containerized applications, automating deployments, and ensuring high availability.',
+        resources: [
+          'Kubernetes Official Docs',
+          'kubectl command-line tool',
+          'Helm for package management'
+        ]
+      },
+      'React': {
+        summary: 'React is a JavaScript library for building user interfaces, particularly single-page applications. It uses a component-based architecture and virtual DOM.',
+        keyPoints: [
+          'Component-based UI development',
+          'Virtual DOM for efficient updates',
+          'Large ecosystem and community support'
+        ],
+        useCase: 'Use React for building interactive, dynamic web applications with reusable components and efficient rendering.',
+        resources: [
+          'React Official Documentation',
+          'Create React App starter',
+          'React DevTools for debugging'
+        ]
+      },
+      'PostgreSQL': {
+        summary: 'PostgreSQL is a powerful, open-source relational database system with strong ACID compliance and advanced features like JSON support.',
+        keyPoints: [
+          'ACID-compliant relational database',
+          'Advanced features: JSON, full-text search',
+          'Highly extensible and standards-compliant'
+        ],
+        useCase: 'Use PostgreSQL for applications requiring complex queries, data integrity, and advanced database features.',
+        resources: [
+          'PostgreSQL Official Docs',
+          'pgAdmin management tool',
+          'PostGIS for spatial data'
+        ]
+      },
+      'Python': {
+        summary: 'Python is a high-level, interpreted programming language known for its simplicity and readability. Widely used in web development, data science, and automation.',
+        keyPoints: [
+          'Clean, readable syntax',
+          'Extensive standard library and packages',
+          'Versatile: web, data science, AI, automation'
+        ],
+        useCase: 'Use Python for rapid development, data analysis, machine learning, web backends, and scripting tasks.',
+        resources: [
+          'Python Official Documentation',
+          'PyPI package repository',
+          'Popular frameworks: Django, Flask, FastAPI'
+        ]
+      }
     };
 
-    for (const [keyword, template] of Object.entries(keywords)) {
-      if (transcript.toLowerCase().includes(keyword)) {
-        const actionItem = {
-          action: template.action,
-          assignee: this.extractAssignee(transcript),
-          priority: template.priority,
-          timestamp: new Date().toLocaleTimeString()
-        };
-        
-        this.addActionItems([actionItem]);
-        break;
-      }
-    }
+    const cardTemplate = demoCards[topic] || {
+      summary: `${topic} is a technology or concept mentioned in your meeting. This is a placeholder for detailed information.`,
+      keyPoints: [
+        'Key feature or concept 1',
+        'Key feature or concept 2',
+        'Key feature or concept 3'
+      ],
+      useCase: `Use ${topic} when you need specific functionality in your project.`,
+      resources: [
+        'Official documentation',
+        'Community resources',
+        'Tutorials and guides'
+      ]
+    };
+
+    const card = {
+      id: Date.now(),
+      topic: topic,
+      timestamp: new Date().toLocaleTimeString(),
+      summary: cardTemplate.summary,
+      keyPoints: cardTemplate.keyPoints,
+      useCase: cardTemplate.useCase,
+      resources: cardTemplate.resources,
+      expanded: false
+    };
+
+    this.addCard(card);
   }
 
   /**
-   * Extract assignee from transcript
+   * Add new card and notify content script
    */
-  extractAssignee(transcript) {
-    const names = ['John', 'Sarah', 'Mike', 'Lisa', 'David', 'Anna'];
-    for (const name of names) {
-      if (transcript.includes(name)) {
-        return name;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Add new action items and notify content script
-   */
-  addActionItems(newItems) {
-    this.actionItems.push(...newItems);
-    this.broadcastToContentScript('NEW_ACTION_ITEMS', {
-      actionItems: this.actionItems
+  addCard(card) {
+    this.contextualCards.push(card);
+    this.broadcastToContentScript('NEW_CARDS', {
+      cards: this.contextualCards
     });
     
-    console.log('New action items added:', newItems);
+    console.log('New contextual card added:', card.topic);
   }
 
   /**
@@ -634,22 +537,22 @@ Meeting transcript: "${transcript}"`
    */
   resetState() {
     this.isRecording = false;
-    this.actionItems = [];
+    this.contextualCards = [];
     this.transcriptBuffer = '';
-    this.lastTranscriptTime = 0;
-    this.mockTranscriptionStarted = false;
+    this.lastProcessedTime = 0;
+    this.processedTopics.clear();
     
     if (this.currentStream) {
       this.currentStream.getTracks().forEach(track => track.stop());
       this.currentStream = null;
     }
     
-    if (this.assemblyAIWS) {
-      this.assemblyAIWS.close();
-      this.assemblyAIWS = null;
+    if (this.demoInterval) {
+      clearInterval(this.demoInterval);
+      this.demoInterval = null;
     }
   }
 }
 
 // Initialize the background service
-new MeetActionsBackground();
+new SyncUpBackground();

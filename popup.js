@@ -1,12 +1,12 @@
 /**
- * Meet-Actions Popup Controller
+ * SyncUp Popup Controller
  * Handles start/stop controls and displays session statistics
  */
 
-class MeetActionsPopup {
+class SyncUpPopup {
   constructor() {
     this.isRecording = false;
-    this.actionItemsCount = 0;
+    this.cardsCount = 0;
     this.sessionStartTime = null;
     this.sessionTimer = null;
     
@@ -25,7 +25,7 @@ class MeetActionsPopup {
     this.startBtn = document.getElementById('startBtn');
     this.stopBtn = document.getElementById('stopBtn');
     this.clearBtn = document.getElementById('clearBtn');
-    this.actionCount = document.getElementById('actionCount');
+    this.cardsCountElement = document.getElementById('actionCount');
     this.sessionTime = document.getElementById('sessionTime');
     this.errorMessage = document.getElementById('errorMessage');
   }
@@ -36,7 +36,7 @@ class MeetActionsPopup {
   bindEvents() {
     this.startBtn.addEventListener('click', () => this.startRecording());
     this.stopBtn.addEventListener('click', () => this.stopRecording());
-    this.clearBtn.addEventListener('click', () => this.clearActionItems());
+    this.clearBtn.addEventListener('click', () => this.clearCards());
     
     // Update status every second when recording
     setInterval(() => {
@@ -59,7 +59,7 @@ class MeetActionsPopup {
       }
 
       this.isRecording = response.isRecording || false;
-      this.actionItemsCount = response.actionItemsCount || 0;
+      this.cardsCount = response.cardsCount || 0;
       
       this.updateUI();
       this.hideError();
@@ -71,7 +71,7 @@ class MeetActionsPopup {
   }
 
   /**
-   * Start recording action items
+   * Start recording
    */
   async startRecording() {
     try {
@@ -99,17 +99,17 @@ class MeetActionsPopup {
       this.updateUI();
       this.setLoading(false);
       
-      console.log('Recording started successfully');
+      console.log('Listening started successfully');
       
     } catch (error) {
-      console.error('Failed to start recording:', error);
-      this.showError('Failed to start recording');
+      console.error('Failed to start listening:', error);
+      this.showError('Failed to start listening');
       this.setLoading(false);
     }
   }
 
   /**
-   * Stop recording action items
+   * Stop recording
    */
   async stopRecording() {
     try {
@@ -129,28 +129,28 @@ class MeetActionsPopup {
       this.updateUI();
       this.setLoading(false);
       
-      console.log('Recording stopped successfully');
+      console.log('Listening stopped successfully');
       
     } catch (error) {
-      console.error('Failed to stop recording:', error);
-      this.showError('Failed to stop recording');
+      console.error('Failed to stop listening:', error);
+      this.showError('Failed to stop listening');
       this.setLoading(false);
     }
   }
 
   /**
-   * Clear all action items
+   * Clear all contextual cards
    */
-  async clearActionItems() {
+  async clearCards() {
     try {
-      if (!confirm('Are you sure you want to clear all action items?')) {
+      if (!confirm('Are you sure you want to clear all contextual cards?')) {
         return;
       }
 
       this.setLoading(true);
       this.hideError();
       
-      const response = await this.sendMessageToBackground('CLEAR_ACTION_ITEMS');
+      const response = await this.sendMessageToBackground('CLEAR_CARDS');
       
       if (response.error) {
         this.showError(response.error);
@@ -158,15 +158,15 @@ class MeetActionsPopup {
         return;
       }
 
-      this.actionItemsCount = 0;
+      this.cardsCount = 0;
       this.updateUI();
       this.setLoading(false);
       
-      console.log('Action items cleared successfully');
+      console.log('Contextual cards cleared successfully');
       
     } catch (error) {
-      console.error('Failed to clear action items:', error);
-      this.showError('Failed to clear action items');
+      console.error('Failed to clear cards:', error);
+      this.showError('Failed to clear cards');
       this.setLoading(false);
     }
   }
@@ -178,22 +178,22 @@ class MeetActionsPopup {
     // Update status indicator
     if (this.isRecording) {
       this.statusIndicator.classList.add('recording');
-      this.statusTitle.textContent = 'Recording';
-      this.statusSubtitle.textContent = 'Capturing and analyzing conversation';
+      this.statusTitle.textContent = 'Listening';
+      this.statusSubtitle.textContent = 'Analyzing conversation in real-time';
       
       this.startBtn.style.display = 'none';
       this.stopBtn.style.display = 'block';
     } else {
       this.statusIndicator.classList.remove('recording');
       this.statusTitle.textContent = 'Standby';
-      this.statusSubtitle.textContent = 'Ready to capture action items';
+      this.statusSubtitle.textContent = 'Ready to capture contextual information';
       
       this.startBtn.style.display = 'block';
       this.stopBtn.style.display = 'none';
     }
 
-    // Update action items count
-    this.actionCount.textContent = this.actionItemsCount;
+    // Update cards count
+    this.cardsCountElement.textContent = this.cardsCount;
 
     // Update session time
     this.updateSessionTime();
@@ -273,5 +273,5 @@ class MeetActionsPopup {
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new MeetActionsPopup();
+  new SyncUpPopup();
 });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meet-Actions Controller</title>
+  <title>SyncUp</title>
   <style>
     * {
       margin: 0;
@@ -223,9 +223,9 @@
 </head>
 <body>
   <div class="header">
-    <div class="logo">📋</div>
-    <div class="title">Meet-Actions</div>
-    <div class="subtitle">AI-Powered Action Item Tracker</div>
+    <div class="logo">🔍</div>
+    <div class="title">SyncUp</div>
+    <div class="subtitle">AI Meeting Assistant</div>
   </div>
 
   <div class="content">
@@ -234,7 +234,7 @@
         <div class="status-indicator" id="statusIndicator"></div>
         <div class="status-text">
           <div class="status-title" id="statusTitle">Standby</div>
-          <div class="status-subtitle" id="statusSubtitle">Ready to capture action items</div>
+          <div class="status-subtitle" id="statusSubtitle">Ready to capture info cards</div>
         </div>
       </div>
     </div>
@@ -244,13 +244,13 @@
     <div class="controls-section">
       <div class="section-title">Controls</div>
       <button class="button button-primary" id="startBtn">
-        🎤 Start Recording
+        🎤 Start Listening
       </button>
       <button class="button button-danger" id="stopBtn" style="display: none;">
-        ⏹️ Stop Recording
+        ⏹️ Stop Listening
       </button>
       <button class="button button-secondary" id="clearBtn">
-        🗑️ Clear Action Items
+        🗑️ Clear Cards
       </button>
     </div>
 
@@ -259,7 +259,7 @@
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-number" id="actionCount">0</div>
-          <div class="stat-label">Action Items</div>
+          <div class="stat-label">Info Cards</div>
         </div>
         <div class="stat-item">
           <div class="stat-number" id="sessionTime">00:00</div>
@@ -270,8 +270,8 @@
   </div>
 
   <div class="footer">
-    <div class="powered-by">⚡ Powered by Cerebras + Meta Llama</div>
-    <div class="version">v1.0.0 | FutureStack GenAI Hackathon</div>
+    <div class="powered-by">⚡ Gemini + Cerebras + Meta Llama</div>
+    <div class="version">v1.0.0 | Hackathon Edition</div>
   </div>
 
   <script src="popup.js"></script>

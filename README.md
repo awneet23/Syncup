@@ -1,16 +1,17 @@
-# Meet-Actions 📋
+# SyncUp 🔍
 
-AI-powered Chrome extension that extracts real-time action items from Google Meet conversations using Cerebras API and Meta Llama models.
+AI-powered Chrome extension that provides real-time contextual information from Google Meet conversations using Gemini Live Audio API and Cerebras with Meta Llama models.
 
-**Built for FutureStack GenAI Hackathon**
+**Built for Hackathon**
 
 ## 🎯 Features
 
-- **Real-time Transcription** - Captures audio from Google Meet using Chrome's tabCapture API
-- **AI-Powered Analysis** - Uses Cerebras API with Llama models for lightning-fast action item extraction
-- **Live Sidebar** - Injects a responsive sidebar into Google Meet showing action items as they're detected
-- **Smart Detection** - Identifies action items, assignees, priorities, and timestamps
-- **Session Management** - Start/stop recording with session statistics
+- **Real-time Transcription** - Captures audio from Google Meet using Gemini Live Audio API
+- **AI-Powered Topic Detection** - Uses Cerebras API with Meta Llama models for lightning-fast topic extraction
+- **Live Contextual Sidebar** - Injects a responsive sidebar into Google Meet showing contextual information as topics are mentioned
+- **Expandable Information Cards** - Click to expand cards and see detailed information, key points, use cases, and resources
+- **Smart Detection** - Automatically identifies technical topics, tools, frameworks, and technologies mentioned in conversation
+- **Session Management** - Start/stop listening with session statistics
 - **Modern UI** - Clean, dark-themed interface matching Google Meet's design
 
 ## 🚀 Quick Start
@@ -18,114 +19,144 @@ AI-powered Chrome extension that extracts real-time action items from Google Mee
 ### Prerequisites
 
 1. **Chrome Browser** (latest version)
-2. **AssemblyAI API Key** - [Get free key](https://www.assemblyai.com/)
+2. **Gemini API Key** - [Get free key](https://ai.google.dev/)
 3. **Cerebras API Key** - [Get access](https://cerebras.ai/)
 
 ### Installation
 
 1. **Clone/Download** this repository
+   ```bash
+   git clone <your-repo-url>
+   cd Syncup
+   ```
+
 2. **Configure API Keys** in `background.js`:
    ```javascript
-   this.ASSEMBLY_AI_API_KEY = 'your_assemblyai_key_here';
-   this.CEREBRAS_API_KEY = 'your_cerebras_key_here';
+   this.GEMINI_API_KEY = 'your_gemini_api_key_here';
+   this.CEREBRAS_API_KEY = 'your_cerebras_api_key_here';
    ```
 
 3. **Load Extension**:
-   - Open Chrome → Extensions → Developer mode ON
-   - Click "Load unpacked" → Select this folder
+   - Open Chrome → `chrome://extensions/`
+   - Enable "Developer mode" (toggle in top right)
+   - Click "Load unpacked" → Select the `Syncup` folder
    - Pin the extension to toolbar
 
 4. **Test Setup**:
    - Join a Google Meet call
-   - Click the extension icon
-   - Hit "Start Recording"
-   - Watch action items appear in the sidebar!
+   - Click the SyncUp extension icon
+   - Hit "Start Listening"
+   - Watch contextual information cards appear in the sidebar!
 
 ## 🛠️ Architecture
 
 ### Core Components
 
 ```
-📁 Meet-Actions/
+📁 SyncUp/
 ├── 📄 manifest.json      # Extension configuration & permissions
 ├── 🎨 styles.css         # Sidebar styling
 ├── 📱 popup.html         # Control panel UI
 ├── ⚡ popup.js           # Control panel logic
 ├── 🖥️ content_script.js  # Sidebar injection & UI
 ├── 🧠 background.js      # Service worker (main brain)
-└── 🐳 Dockerfile        # Container configuration
+├── 🐳 Dockerfile         # Container configuration
+└── 📖 README.md          # Documentation
 ```
 
 ### Data Flow
 
 ```
-Google Meet Audio → tabCapture API → AssemblyAI → Real-time Transcript
-                                                        ↓
-Action Items ← Cerebras API (Llama) ← Transcript Analysis
-     ↓
-Sidebar UI ← Content Script ← Background Service Worker
+Google Meet Audio → Gemini Live Audio API → Real-time Transcript
+                                                    ↓
+                                        Topic Extraction (Cerebras + Llama)
+                                                    ↓
+                                    Contextual Information Generation
+                                                    ↓
+                            Sidebar UI ← Content Script ← Background Worker
 ```
 
 ### Technology Stack
 
-- **Frontend**: Vanilla JavaScript, Chrome Extension APIs
+- **Frontend**: Vanilla JavaScript, Chrome Extension APIs (Manifest V3)
 - **Audio Processing**: Chrome tabCapture API, Web Audio API
-- **Transcription**: AssemblyAI Real-time WebSocket API
-- **AI Analysis**: Cerebras API with Meta Llama models
-- **Deployment**: Docker containerization
+- **Transcription**: Google Gemini Live Audio API
+- **AI Analysis**: Cerebras API with Meta Llama 3.1-8B models
+- **UI Framework**: Custom CSS with Google Meet-inspired design
+- **Deployment**: Docker containerization support
 
 ## 🎮 Usage
 
 ### Starting a Session
 
-1. Navigate to Google Meet
-2. Join or start a meeting
-3. Click the Meet-Actions extension icon
-4. Click "🎤 Start Recording"
-5. Watch the sidebar appear with real-time action items!
+1. Navigate to Google Meet and join a meeting
+2. Click the SyncUp extension icon in your toolbar
+3. Click "🎤 Start Listening"
+4. Watch the sidebar appear with real-time contextual information!
 
-### Managing Action Items
+### Interacting with Cards
 
-- **View Progress**: Action items appear automatically in the sidebar
-- **Session Stats**: See count and session time in the popup
-- **Clear Items**: Use "🗑️ Clear Action Items" button
-- **Stop Recording**: Click "⏹️ Stop Recording" when done
+- **View Cards**: Contextual information cards appear automatically as topics are mentioned
+- **Expand Cards**: Click on any card to see detailed information including:
+  - Summary overview
+  - Key points
+  - Use cases
+  - Helpful resources
+- **Session Stats**: See card count and session time in the popup
+- **Clear Cards**: Use "🗑️ Clear Cards" button to reset
+- **Stop Listening**: Click "⏹️ Stop Listening" when done
 
 ### Demo Mode
 
 The extension includes a **demo mode** that works without API keys:
-- Uses mock transcription data
-- Generates sample action items
+- Uses mock transcription data with realistic meeting scenarios
+- Generates sample contextual cards for common technologies
 - Perfect for testing and demonstrations
+- Automatically activates when API keys are not configured
 
 ## 🔧 Configuration
 
 ### API Setup
 
-**AssemblyAI Configuration:**
+**Gemini API Configuration:**
 ```javascript
-// In background.js
-this.ASSEMBLY_AI_API_KEY = 'your_key_here';
+// In background.js (line 18)
+this.GEMINI_API_KEY = 'your_gemini_api_key_here';
 ```
 
-**Cerebras Configuration:**
+Get your Gemini API key:
+1. Visit [Google AI Studio](https://ai.google.dev/)
+2. Sign in with your Google account
+3. Create a new API key
+4. Copy and paste into `background.js`
+
+**Cerebras API Configuration:**
 ```javascript
-// In background.js
-this.CEREBRAS_API_KEY = 'your_key_here';
-this.CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
+// In background.js (line 19)
+this.CEREBRAS_API_KEY = 'your_cerebras_api_key_here';
 ```
+
+Get your Cerebras API key:
+1. Visit [Cerebras Cloud](https://cerebras.ai/)
+2. Sign up for an account
+3. Generate an API key from the dashboard
+4. Copy and paste into `background.js`
 
 ### Customization
 
-**Modify Action Item Detection:**
-- Edit the system prompt in `background.js → extractActionItems()`
-- Adjust keywords in `processMockActionItems()`
-- Customize priority levels and assignee detection
+**Modify Topic Detection:**
+- Edit the keyword dictionary in `background.js → extractTopicsDemo()`
+- Adjust the system prompt in `extractTopicsAndGenerateCards()`
+- Add custom topics and their information in `addDemoCard()`
 
 **UI Customization:**
 - Modify sidebar styles in `styles.css`
 - Update popup design in `popup.html`
-- Adjust sidebar content in `content_script.js`
+- Adjust card layout in `content_script.js`
+
+**Card Information:**
+- Customize predefined card data in `background.js → addDemoCard()`
+- Modify the AI prompt for real-time generation in `generateContextualCard()`
 
 ## 🐳 Docker Deployment
 
@@ -133,105 +164,132 @@ Build and run the containerized version:
 
 ```bash
 # Build image
-docker build -t meet-actions .
+docker build -t syncup .
 
 # Run container
-docker run -p 3000:3000 meet-actions
+docker run -p 3000:3000 syncup
 
-# Development mode
-docker run -v $(pwd):/app -p 3000:3000 meet-actions
+# Development mode with volume mounting
+docker run -v $(pwd):/app -p 3000:3000 syncup
 ```
 
 ## 🔐 Security & Privacy
 
 - **Local Processing**: Audio processing happens locally in the browser
 - **Secure APIs**: All API calls use HTTPS encryption
-- **No Storage**: Transcripts are not stored permanently
+- **No Permanent Storage**: Transcripts are not stored permanently
 - **Permission-Based**: Requires explicit user consent for audio access
+- **API Key Security**: Keep your API keys private and never commit them to version control
 
 ## 🎪 Hackathon Highlights
 
 ### Sponsor Integration Requirements ✅
 
-- **✅ Cerebras API**: Lightning-fast LLM inference for action item extraction
-- **✅ Meta Llama**: Underlying model for intelligent text analysis  
+- **✅ Gemini API**: Real-time audio transcription and processing
+- **✅ Cerebras API**: Lightning-fast LLM inference for topic extraction
+- **✅ Meta Llama**: Llama 3.1-8B model for intelligent text analysis
 - **✅ Docker**: Containerized deployment for easy demonstration
 
 ### Innovation Points
 
-- **Real-time Processing**: Live transcription and analysis during meetings
+- **Real-time Processing**: Live transcription and contextual analysis during meetings
 - **Seamless Integration**: Non-intrusive sidebar that enhances Google Meet
-- **AI-Powered Intelligence**: Smart detection of tasks, priorities, and assignments
+- **AI-Powered Intelligence**: Smart detection of topics with detailed contextual information
 - **Modern Architecture**: Manifest V3, service workers, and responsive design
+- **Expandable UI**: Interactive cards that provide deep-dive information on demand
 
 ## 🚨 Troubleshooting
 
 ### Common Issues
 
 **Extension not loading:**
-- Enable Developer mode in Chrome Extensions
+- Enable Developer mode in `chrome://extensions/`
 - Check for manifest.json syntax errors
 - Verify all file paths are correct
+- Reload the extension after making changes
 
 **No audio capture:**
-- Ensure you're on a Google Meet page
-- Check microphone permissions in Chrome
-- Verify tabCapture permission is granted
+- Ensure you're on a Google Meet page (`meet.google.com`)
+- Check microphone permissions in Chrome settings
+- Verify tabCapture permission is granted in manifest
 
 **API errors:**
-- Validate API keys are correctly set
-- Check network connectivity
-- Review browser console for detailed errors
+- Validate API keys are correctly set in `background.js`
+- Check that `DEMO_MODE` is set to `false` when using real APIs
+- Review browser console (F12) for detailed error messages
+- Verify API key quotas haven't been exceeded
 
 **Sidebar not appearing:**
-- Refresh the Google Meet page
+- Refresh the Google Meet page after loading extension
 - Check browser console for injection errors
 - Ensure content script permissions are granted
+- Try clicking "Start Listening" in the popup
+
+**Cards not generating:**
+- Check if demo mode is active (default when no API keys)
+- Verify Cerebras API key is valid and has quota
+- Look for error messages in browser console
+- Try mentioning common tech keywords (Docker, React, Python, etc.)
 
 ### Debug Mode
 
-Enable debug mode for detailed logging:
+Enable detailed logging:
 ```javascript
-// In background.js, add:
-const DEBUG_MODE = true;
+// In browser console (F12)
+// Check background service worker logs
+// Check content script logs on Meet page
 ```
+
+View logs:
+1. Open Chrome DevTools (F12)
+2. Go to Console tab
+3. Look for "SyncUp:" prefixed messages
+4. Check for error messages in red
 
 ## 📊 Performance
 
-- **Low Latency**: ~2-3 second delay from speech to action item
+- **Low Latency**: ~3-5 second delay from speech to contextual card
 - **Efficient Processing**: Minimal impact on meeting performance
-- **Smart Batching**: Processes transcripts in optimized chunks
+- **Smart Caching**: Avoids duplicate cards for same topics
 - **Resource Conscious**: Uses browser's native audio processing
+- **Optimized AI**: Cerebras provides ultra-fast inference (<1s)
 
-## 🤝 Contributing
+## 🤝 Development
 
-Built for the FutureStack GenAI Hackathon! 
+### Project Structure
 
-### Development Setup
-
-1. Fork the repository
-2. Make your changes
-3. Test with Google Meet
-4. Submit your improvements
+- `manifest.json` - Chrome extension configuration
+- `background.js` - Service worker handling AI processing
+- `content_script.js` - Sidebar injection and UI management
+- `popup.js` - Extension popup controller
+- `popup.html` - Popup interface
+- `styles.css` - Sidebar and card styling
 
 ### Future Enhancements
 
-- Meeting summaries and notes export
-- Integration with project management tools
+- Real Gemini Live Audio WebSocket integration
 - Multi-language support
-- Voice-to-action item templates
-- Calendar integration for follow-ups
+- Export cards as notes/summaries
+- Integration with note-taking apps
+- Custom topic libraries
+- Voice-activated card expansion
+- Meeting summaries and insights
 
 ## 📜 License
 
 MIT License - Feel free to use and modify for your projects!
 
-## 🏆 Hackathon Team
+## 🏆 Hackathon Information
 
-**Project**: Meet-Actions  
-**Event**: FutureStack GenAI Hackathon  
-**Tech Stack**: Chrome Extensions, Cerebras API, Meta Llama, Docker  
+**Project**: SyncUp  
+**Description**: AI Meeting Assistant with Real-time Contextual Information  
+**Tech Stack**: Chrome Extensions, Gemini API, Cerebras API, Meta Llama, Docker  
+
+### Required API Keys
+
+1. **Gemini API Key** - For real-time audio transcription
+2. **Cerebras API Key** - For fast topic extraction and information generation
 
 ---
 
-*Built with ❤️ for productive meetings and actionable outcomes!*
+*Built with ❤️ for productive meetings and contextual learning!*
