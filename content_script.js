@@ -14,6 +14,8 @@ class SyncUpSidebar {
     this.bufferInterval = null;
     this.meetingTranscript = ''; // Store full meeting transcript for context
     this.isListeningForQuestion = false; // Wake word detected, listening for question
+    this.isSidebarOpen = false; // Track sidebar open/close state
+    this.toggleButton = null; // Toggle button element
     
     this.init();
   }
@@ -58,15 +60,28 @@ class SyncUpSidebar {
       return;
     }
 
+    // Create toggle button first
+    this.toggleButton = document.createElement('button');
+    this.toggleButton.className = 'syncup-toggle-btn';
+    this.toggleButton.innerHTML = '&#x1F50D;';
+    this.toggleButton.title = 'Toggle SyncUp Sidebar';
+    
+    // Add toggle button click handler
+    this.toggleButton.addEventListener('click', () => {
+      this.toggleSidebar();
+    });
+    
+    document.body.appendChild(this.toggleButton);
+
     // Create sidebar container
     this.sidebarElement = document.createElement('div');
     this.sidebarElement.id = 'syncup-sidebar';
-    this.sidebarElement.className = 'syncup-sidebar';
+    this.sidebarElement.className = 'syncup-sidebar'; // Starts closed (CSS has right: -420px)
 
     // Sidebar HTML structure
     this.sidebarElement.innerHTML = `
       <div class="sidebar-header">
-        <h3>🔍 SyncUp</h3>
+        <h3>&#x1F50D; SyncUp</h3>
         <p class="header-subtitle">Contextual Information</p>
         <div class="recording-status">
           <span class="status-indicator"></span>
@@ -74,20 +89,20 @@ class SyncUpSidebar {
         </div>
         <div class="sidebar-controls">
           <button class="sidebar-btn start-btn" id="sidebarStartBtn">
-            <span>▶</span> Start
+            <span>&#x25B6;</span> Start
           </button>
           <button class="sidebar-btn stop-btn" id="sidebarStopBtn" style="display: none;">
-            <span>⏹</span> Stop
+            <span>&#x23F9;</span> Stop
           </button>
           <button class="sidebar-btn clear-btn" id="sidebarClearBtn">
-            <span>🗑️</span> Clear All
+            <span>&#x1F5D1;</span> Clear All
           </button>
         </div>
       </div>
       <div class="sidebar-content">
         <div class="contextual-cards-list" id="contextual-cards-list">
           <div class="placeholder">
-            <div class="placeholder-icon">💡</div>
+            <div class="placeholder-icon">&#x1F4A1;</div>
             <p>Contextual information will appear here</p>
             <p class="help-text">Click Start to begin listening</p>
           </div>
@@ -95,7 +110,7 @@ class SyncUpSidebar {
       </div>
       <div class="sidebar-footer">
         <div class="powered-by">
-          ⚡ Powered by Gemini + Cerebras + Meta Llama
+          &#x26A1; Powered by Gemini + Cerebras + Meta Llama
         </div>
       </div>
     `;
@@ -108,15 +123,6 @@ class SyncUpSidebar {
     this.setupSidebarControls();
 
     console.log('SyncUp: Sidebar injected successfully');
-    
-    // Force immediate visibility
-    setTimeout(() => {
-      if (this.sidebarElement) {
-        this.sidebarElement.style.display = 'flex';
-        this.sidebarElement.style.zIndex = '999999';
-        console.log('SyncUp: Sidebar visibility forced');
-      }
-    }, 500);
     
     // Notify background script that sidebar is ready
     chrome.runtime.sendMessage({
@@ -143,12 +149,12 @@ class SyncUpSidebar {
         break;
         
       case 'START_SPEECH_RECOGNITION':
-        console.log('📨 Content script received START_SPEECH_RECOGNITION');
+        console.log('&#x1F4E8; Content script received START_SPEECH_RECOGNITION');
         this.startSpeechRecognition();
         break;
         
       case 'STOP_SPEECH_RECOGNITION':
-        console.log('📨 Content script received STOP_SPEECH_RECOGNITION');
+        console.log('&#x1F4E8; Content script received STOP_SPEECH_RECOGNITION');
         this.stopSpeechRecognition();
         break;
       
@@ -174,7 +180,7 @@ class SyncUpSidebar {
     if (this.contextualCards.length === 0) {
       listContainer.innerHTML = `
         <div class="placeholder">
-          <div class="placeholder-icon">💡</div>
+          <div class="placeholder-icon">&#x1F4A1;</div>
           <p>Listening for topics...</p>
           <p class="help-text">Contextual information will appear as topics are mentioned</p>
         </div>
@@ -190,9 +196,9 @@ class SyncUpSidebar {
            ${card.isInstantResponse ? 'data-instant="true"' : ''}>
         <div class="card-header" data-card-index="${index}">
           <div class="card-title-row">
-            <span class="card-icon">${card.isInstantResponse ? '💬' : '📌'}</span>
+            <span class="card-icon">${card.isInstantResponse ? '&#x1F4AC;' : '&#x1F4D9;'}</span>
             <h4 class="card-topic">${this.escapeHtml(card.topic)}</h4>
-            <span class="expand-icon">${card.expanded ? '▼' : '▶'}</span>
+            <span class="expand-icon">${card.expanded ? '&#x25BC;' : '&#x25B6;'}</span>
           </div>
           <div class="card-timestamp">${card.timestamp}</div>
         </div>
@@ -221,7 +227,7 @@ class SyncUpSidebar {
             <div class="card-section">
               <h5>Resources</h5>
               <ul class="resources-list">
-                ${card.resources.map(resource => `<li>📚 ${this.escapeHtml(resource)}</li>`).join('')}
+                ${card.resources.map(resource => `<li>&#x1F4DA; ${this.escapeHtml(resource)}</li>`).join('')}
               </ul>
             </div>
           ` : ''}
@@ -332,7 +338,7 @@ class SyncUpSidebar {
 
     if (startBtn) {
       startBtn.addEventListener('click', () => {
-        console.log('🖱️ Start button clicked');
+        console.log('&#x1F4E8; Start button clicked');
         this.isRecording = true;
         this.updateRecordingStatus(true);
         this.startSpeechRecognition();
@@ -348,7 +354,7 @@ class SyncUpSidebar {
 
     if (stopBtn) {
       stopBtn.addEventListener('click', () => {
-        console.log('🖱️ Stop button clicked');
+        console.log('&#x1F4E8; Stop button clicked');
         this.isRecording = false;
         this.updateRecordingStatus(false);
         this.stopSpeechRecognition();
@@ -364,9 +370,28 @@ class SyncUpSidebar {
     
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
-        console.log('🖱️ Clear button clicked');
+        console.log('&#x1F4E8; Clear button clicked');
         chrome.runtime.sendMessage({ type: 'CLEAR_CARDS' });
       });
+    }
+  }
+
+  /**
+   * Toggle sidebar open/close
+   */
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+    
+    if (this.isSidebarOpen) {
+      this.sidebarElement.classList.add('open');
+      this.toggleButton.classList.add('sidebar-open');
+      this.toggleButton.innerHTML = '&#x2715;';
+      this.toggleButton.title = 'Close SyncUp Sidebar';
+    } else {
+      this.sidebarElement.classList.remove('open');
+      this.toggleButton.classList.remove('sidebar-open');
+      this.toggleButton.innerHTML = '&#x1F50D;';
+      this.toggleButton.title = 'Open SyncUp Sidebar';
     }
   }
 
@@ -377,7 +402,7 @@ class SyncUpSidebar {
     console.log('=== Starting Speech Recognition ===');
     
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      console.error('❌ Speech recognition not supported in this browser');
+      console.error('&#x2718; Speech recognition not supported in this browser');
       alert('Speech recognition is not supported in your browser. Please use Chrome.');
       return;
     }
@@ -389,9 +414,9 @@ class SyncUpSidebar {
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US';
     
-    console.log('✅ Speech recognition configured');
-    console.log('📢 Browser will request microphone permission...');
-    console.log('⏱️ Cards will be generated every 15 seconds based on conversation');
+    console.log('&#x2714; Speech recognition configured');
+    console.log('&#x1F4E8; Browser will request microphone permission...');
+    console.log('&#x23F1; Cards will be generated every 15 seconds based on conversation');
     
     // Clear any existing buffer
     this.transcriptBuffer = '';
@@ -399,26 +424,26 @@ class SyncUpSidebar {
     // Set up interval to process buffer every 15 seconds
     this.bufferInterval = setInterval(() => {
       if (this.transcriptBuffer.trim().length > 0) {
-        console.log('⏰ 15 seconds elapsed - Processing conversation:', this.transcriptBuffer);
+        console.log('&#x23F1; 15 seconds elapsed - Processing conversation:', this.transcriptBuffer);
         
         // Send accumulated transcript to background
         chrome.runtime.sendMessage({
           type: 'TRANSCRIPT_RECEIVED',
           transcript: this.transcriptBuffer.trim()
         }, (response) => {
-          console.log('📤 15-second conversation batch sent to background');
+          console.log('&#x1F4E8; 15-second conversation batch sent to background');
         });
         
         // Clear buffer for next 15 seconds
         this.transcriptBuffer = '';
       } else {
-        console.log('⏰ 15 seconds elapsed - No conversation detected');
+        console.log('&#x23F1; 15 seconds elapsed - No conversation detected');
       }
     }, 15000); // 15 seconds
     
     this.recognition.onstart = () => {
-      console.log('🎤 Speech recognition STARTED - Microphone is active');
-      console.log('💬 Start speaking now...');
+      console.log('&#x1F4E8; Speech recognition STARTED - Microphone is active');
+      console.log('&#x1F4AC; Start speaking now...');
     };
     
     this.recognition.onresult = (event) => {
@@ -429,31 +454,31 @@ class SyncUpSidebar {
         const isFinal = event.results[i].isFinal;
         
         // LOG EVERYTHING - Show all transcripts in real-time
-        console.log('═══════════════════════════════════════');
-        console.log('📝 TRANSCRIPT:', transcript);
-        console.log('🔒 Is Final:', isFinal);
-        console.log('═══════════════════════════════════════');
+        console.log('&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;');
+        console.log('&#x1F4AC; TRANSCRIPT:', transcript);
+        console.log('&#x1F510; Is Final:', isFinal);
+        console.log('&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;&#x1F4D9;');
         
         if (isFinal) {
           const lowerTranscript = transcript.toLowerCase().trim();
           
-          console.log('🔍 Checking for wake word in:', lowerTranscript);
+          console.log('&#x1F50D; Checking for wake word in:', lowerTranscript);
           
           // Check for wake word "Hey SyncUp"
           const hasWakeWord = lowerTranscript.includes('hey sync up') || 
                              lowerTranscript.includes('hey syncup') ||
                              lowerTranscript.includes('a sync up') ||
-                             lowerTranscript.includes('hey ') ||
+                             lowerTranscript.includes('hey  ') ||
                              lowerTranscript.includes('hello') ||
                              lowerTranscript.includes('hello car') ||
                              lowerTranscript.includes('hello world') ||
                              lowerTranscript.includes('hello raj');
         
-          console.log('🎯 Wake word detected?', hasWakeWord);
+          console.log('&#x1F4A1; Wake word detected?', hasWakeWord);
           
           if (hasWakeWord) {
-            console.log('🎯 WAKE WORD DETECTED: Hey SyncUp!');
-            console.log('🎤 Now listening for your question...');
+            console.log('&#x1F4A1; WAKE WORD DETECTED: Hey SyncUp!');
+            console.log('&#x1F4E8; Now listening for your question...');
             this.isListeningForQuestion = true;
             this.showWakeWordIndicator();
             
@@ -462,21 +487,21 @@ class SyncUpSidebar {
                                           .replace(/a sync ?up/i, '')
                                           .replace(/hey sink ?up/i, '')
                                           .trim();
-            console.log('❓ Question part extracted:', questionPart);
+            console.log('&#x3F; Question part extracted:', questionPart);
             
             if (questionPart.length > 5) {
-              console.log('✅ Question found in same sentence, processing...');
+              console.log('&#x2714; Question found in same sentence, processing...');
               this.handleQuestion(questionPart);
               this.isListeningForQuestion = false;
             } else {
-              console.log('⏳ Waiting for question in next sentence...');
+              console.log('&#x23F1; Waiting for question in next sentence...');
             }
             continue;
           }
           
           // If we're listening for a question after wake word
           if (this.isListeningForQuestion) {
-            console.log('❓ Question captured after wake word:', transcript);
+            console.log('&#x3F; Question captured after wake word:', transcript);
             this.handleQuestion(transcript);
             this.isListeningForQuestion = false;
             this.hideWakeWordIndicator();
@@ -486,23 +511,23 @@ class SyncUpSidebar {
           // Normal transcript buffering for regular cards
           this.transcriptBuffer += transcript + ' ';
           this.meetingTranscript += transcript + ' '; // Keep full meeting context
-          console.log('✅ Added to buffer:', transcript);
-          console.log('📝 Current buffer length:', this.transcriptBuffer.length);
-          console.log('📚 Meeting transcript length:', this.meetingTranscript.length);
+          console.log('&#x2714; Added to buffer:', transcript);
+          console.log('&#x1F4AC; Current buffer length:', this.transcriptBuffer.length);
+          console.log('&#x1F4D9; Meeting transcript length:', this.meetingTranscript.length);
         } else {
           interimTranscript += transcript;
-          console.log('⏳ Interim (not final):', transcript);
+          console.log('&#x23F1; Interim (not final):', transcript);
         }
       }
     };
     
     this.recognition.onerror = (event) => {
-      console.error('❌ Speech recognition error:', event.error);
+      console.error('&#x2718; Speech recognition error:', event.error);
       
       if (event.error === 'not-allowed') {
         alert('Microphone permission denied. Please allow microphone access and try again.');
       } else if (event.error === 'no-speech') {
-        console.log('⚠️ No speech detected, restarting...');
+        console.log('&#x26A0; No speech detected, restarting...');
         setTimeout(() => {
           if (this.isRecording && this.recognition) {
             this.recognition.start();
@@ -514,7 +539,7 @@ class SyncUpSidebar {
     };
     
     this.recognition.onend = () => {
-      console.log('🔄 Speech recognition ended, restarting...');
+      console.log('&#x1F4E8; Speech recognition ended, restarting...');
       // Restart recognition if still recording
       if (this.isRecording) {
         setTimeout(() => {
@@ -531,9 +556,9 @@ class SyncUpSidebar {
     
     try {
       this.recognition.start();
-      console.log('🚀 Recognition start() called - waiting for permission...');
+      console.log('&#x1F4E8; Recognition start() called - waiting for permission...');
     } catch (error) {
-      console.error('❌ Failed to start speech recognition:', error);
+      console.error('&#x2718; Failed to start speech recognition:', error);
       alert('Failed to start speech recognition: ' + error.message);
     }
   }
@@ -541,14 +566,14 @@ class SyncUpSidebar {
   stopSpeechRecognition() {
     if (this.recognition) {
       this.recognition.stop();
-      console.log('🔇 Speech recognition stopped');
+      console.log('&#x1F510; Speech recognition stopped');
       clearInterval(this.bufferInterval);
     }
   }
 
   handleQuestion(question) {
-    console.log('🤔 Handling question:', question);
-    console.log('📚 Meeting context available:', this.meetingTranscript.length, 'characters');
+    console.log('&#x1F4A1; Handling question:', question);
+    console.log('&#x1F4D9; Meeting context available:', this.meetingTranscript.length, 'characters');
     
     // Send question with meeting context to background script
     chrome.runtime.sendMessage({
@@ -557,9 +582,9 @@ class SyncUpSidebar {
       meetingContext: this.meetingTranscript
     }, (response) => {
       if (response && response.success) {
-        console.log('✅ Question sent to background successfully');
+        console.log('&#x2714; Question sent to background successfully');
       } else if (response && response.error) {
-        console.error('❌ Error sending question:', response.error);
+        console.error('&#x2718; Error sending question:', response.error);
       }
     });
   }
@@ -568,14 +593,14 @@ class SyncUpSidebar {
    * Show visual indicator that wake word was detected
    */
   showWakeWordIndicator() {
-    console.log('� SHOWING WAKE WORD INDICATOR');
+    console.log('&#x1F4A1; SHOWING WAKE WORD INDICATOR');
     const statusText = document.querySelector('.status-text');
     if (statusText) {
-      statusText.textContent = '🎤 Listening for your question...';
+      statusText.textContent = '&#x1F4E8; Listening for your question...';
       statusText.style.color = '#34a853';
-      console.log('✅ Status text updated to show listening for question');
+      console.log('&#x2714; Status text updated to show listening for question');
     } else {
-      console.error('❌ Could not find status text element');
+      console.error('&#x2718; Could not find status text element');
     }
   }
 
@@ -583,21 +608,21 @@ class SyncUpSidebar {
    * Hide wake word indicator
    */
   hideWakeWordIndicator() {
-    console.log('� HIDING WAKE WORD INDICATOR');
+    console.log('&#x1F4A1; HIDING WAKE WORD INDICATOR');
     const statusText = document.querySelector('.status-text');
     if (statusText) {
       statusText.textContent = 'Listening';
       statusText.style.color = '';
-      console.log('✅ Status text reset to normal');
+      console.log('&#x2714; Status text reset to normal');
     } else {
-      console.error('❌ Could not find status text element');
+      console.error('&#x2718; Could not find status text element');
     }
   }
 }
 
 // Initialize the sidebar when script loads
 if (document.location.hostname === 'meet.google.com') {
-  console.log('🚀 SyncUp content script loaded on Google Meet');
+  console.log('&#x1F4E8; SyncUp content script loaded on Google Meet');
   const sidebar = new SyncUpSidebar();
-  console.log('✅ SyncUp sidebar instance created');
+  console.log('&#x2714; SyncUp sidebar instance created');
 }
