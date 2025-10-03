@@ -83,22 +83,24 @@ class SyncUpSidebar {
     // Sidebar HTML structure
     this.sidebarElement.innerHTML = `
       <div class="sidebar-header">
-        <h3>&#x1F50D; SyncUp</h3>
-        <p class="header-subtitle">Contextual Information</p>
-        <div class="recording-status">
-          <span class="status-indicator"></span>
-          <span class="status-text">Standby</span>
+        <div class="header-top">
+          <h3>&#x1F50D; SyncUp</h3>
+          <div class="sidebar-controls">
+            <span class="control-icon start-icon" id="sidebarStartBtn" title="Start">
+            <img src="https://img.icons8.com/?size=30&id=99cTBfGlewZU&format=png&color=40C057" alt="Start" > </img>
+            </span>
+            <span class="control-icon stop-icon" id="sidebarStopBtn" style="display: none;" title="Pause">
+            <img src="https://img.icons8.com/?size=30&id=9987&format=png&color=40C057" alt="Start" > </img>
+            </span>
+            <span class="control-icon clear-icon" id="sidebarClearBtn" title="Clear All" style="margin-bottom:15px;">
+            <img src="https://img.icons8.com/?size=30&id=67884&format=png&color=40C057" alt="Start" > </img>
+            </span>
+          </div>
         </div>
-        <div class="sidebar-controls">
-          <button class="sidebar-btn start-btn" id="sidebarStartBtn">
-            <span>&#x25B6;</span> Start
-          </button>
-          <button class="sidebar-btn stop-btn" id="sidebarStopBtn" style="display: none;">
-            <span>&#x23F9;</span> Stop
-          </button>
-          <button class="sidebar-btn clear-btn" id="sidebarClearBtn">
-            <span>&#x1F5D1;</span> Clear All
-          </button>
+        <div class="listening-indicator" id="listeningIndicator" style="display: none;">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
         </div>
       </div>
       <div class="sidebar-content">
@@ -111,10 +113,6 @@ class SyncUpSidebar {
         </div>
       </div>
       <div class="chatbox-container">
-        <div class="chatbox-header">
-          <span class="chatbox-icon">💬</span>
-          <span class="chatbox-title">Ask About Meeting</span>
-        </div>
         <div class="chatbox-input-wrapper">
           <input
             type="text"
@@ -123,7 +121,7 @@ class SyncUpSidebar {
             placeholder="Ask anything about the meeting..."
             autocomplete="off"
           />
-          <button id="chatbox-send-btn" class="chatbox-send-btn">
+          <button id="chatbox-send-btn" class="chatbox-send-btn" style="width: 40px; height: 40px;">
             <span>➤</span>
           </button>
         </div>
@@ -402,21 +400,18 @@ class SyncUpSidebar {
    */
   updateRecordingStatus(isRecording) {
     this.isRecording = isRecording;
-    const statusIndicator = document.querySelector('.status-indicator');
-    const statusText = document.querySelector('.status-text');
+    const listeningIndicator = document.getElementById('listeningIndicator');
     const startBtn = document.getElementById('sidebarStartBtn');
     const stopBtn = document.getElementById('sidebarStopBtn');
-    
-    if (statusIndicator && statusText) {
+
+    if (listeningIndicator) {
       if (isRecording) {
-        statusIndicator.className = 'status-indicator recording';
-        statusText.textContent = 'Listening';
+        listeningIndicator.style.display = 'flex';
         if (startBtn) startBtn.style.display = 'none';
-        if (stopBtn) stopBtn.style.display = 'block';
+        if (stopBtn) stopBtn.style.display = 'inline-block';
       } else {
-        statusIndicator.className = 'status-indicator';
-        statusText.textContent = 'Standby';
-        if (startBtn) startBtn.style.display = 'block';
+        listeningIndicator.style.display = 'none';
+        if (startBtn) startBtn.style.display = 'inline-block';
         if (stopBtn) stopBtn.style.display = 'none';
       }
     }
