@@ -244,11 +244,7 @@ class SyncUpSidebar {
 
     if (this.contextualCards.length === 0) {
       listContainer.innerHTML = `
-        <div class="placeholder">
-          <div class="placeholder-icon">&#x1F4A1;</div>
-          <p>Listening for topics...</p>
-          <p class="help-text">Contextual information will appear as topics are mentioned</p>
-        </div>
+       
       `;
       return;
     }
