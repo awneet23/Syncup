@@ -107,11 +107,8 @@
 /* Header */
 .sidebar-header {
   padding: 28px 24px;
-  border-bottom: 1px solid rgba(138, 180, 248, 0.15);
-  background: linear-gradient(135deg,
-    rgba(26, 26, 26, 0.3) 0%,
-    rgba(45, 45, 45, 0.2) 100%);
-  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(138, 180, 248, 0.3);
+  background: none;
   position: relative;
   overflow: hidden;
 }
