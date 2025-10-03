@@ -389,10 +389,118 @@
   font-weight: 400 !important;
 }
 
+/* Recent Cards Section - Sidebar Style */
+.recent-cards-section {
+  margin-bottom: 24px;
+  background: linear-gradient(135deg,
+    rgba(26, 115, 232, 0.08) 0%,
+    rgba(138, 180, 248, 0.05) 100%);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(138, 180, 248, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.recent-cards-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    rgba(138, 180, 248, 0.6) 0%,
+    rgba(26, 115, 232, 0.8) 50%,
+    rgba(138, 180, 248, 0.6) 100%);
+}
+
+.section-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8ab4f8;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 14px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-header::before {
+  content: '📌';
+  font-size: 14px;
+  filter: drop-shadow(0 2px 4px rgba(138, 180, 248, 0.4));
+}
+
+/* Older Cards Collapsible Section */
+.older-cards-section {
+  margin-top: 20px;
+}
+
+.older-cards-toggle {
+  width: 100%;
+  background: rgba(138, 180, 248, 0.05);
+  border: 1px solid rgba(138, 180, 248, 0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  margin-bottom: 12px;
+}
+
+.older-cards-toggle:hover {
+  background: rgba(138, 180, 248, 0.1);
+  border-color: rgba(138, 180, 248, 0.25);
+}
+
+.older-cards-toggle-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.older-cards-count {
+  background: rgba(138, 180, 248, 0.2);
+  color: #8ab4f8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.older-cards-arrow {
+  font-size: 12px;
+  color: #8ab4f8;
+  transition: transform 0.3s ease;
+}
+
+.older-cards-toggle.expanded .older-cards-arrow {
+  transform: rotate(90deg);
+}
+
+.older-cards-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+.older-cards-list.expanded {
+  max-height: 2000px;
+}
+
 /* Contextual Cards */
 .context-card {
-  background: linear-gradient(135deg, 
-    rgba(41, 42, 45, 0.8) 0%, 
+  background: linear-gradient(135deg,
+    rgba(41, 42, 45, 0.8) 0%,
     rgba(45, 46, 49, 0.6) 100%);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(138, 180, 248, 0.2);

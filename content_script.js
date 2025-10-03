@@ -210,7 +210,28 @@ class SyncUpSidebar {
     console.log('🔄 Received cards:', newCards?.length || 0);
     console.log('🔄 Full cards data:', JSON.stringify(newCards, null, 2));
 
+    // Preserve expanded state of existing cards
+    const previousExpandedStates = {};
+    if (this.contextualCards && this.contextualCards.length > 0) {
+      this.contextualCards.forEach((card, index) => {
+        if (card.id) {
+          previousExpandedStates[card.id] = card.expanded || false;
+        }
+      });
+    }
+
     this.contextualCards = newCards || [];
+
+    // Apply previous expanded states, keeping new cards collapsed
+    this.contextualCards.forEach(card => {
+      if (card.id && previousExpandedStates.hasOwnProperty(card.id)) {
+        card.expanded = previousExpandedStates[card.id];
+      } else {
+        // New cards default to collapsed
+        card.expanded = false;
+      }
+    });
+
     const listContainer = document.getElementById('contextual-cards-list');
 
     if (!listContainer) {
@@ -234,11 +255,15 @@ class SyncUpSidebar {
       return;
     }
 
-    // Generate cards HTML
-    const cardsHTML = this.contextualCards.map((card, index) => {
-      // Determine card type for styling
+    // Separate recent and older cards
+    const RECENT_CARDS_LIMIT = 3;
+    const recentCards = this.contextualCards.slice(-RECENT_CARDS_LIMIT);
+    const olderCards = this.contextualCards.slice(0, -RECENT_CARDS_LIMIT);
+
+    // Helper function to generate card HTML
+    const generateCardHTML = (card, index) => {
       let cardType = '';
-      let cardIcon = '📘'; // Default for auto-generated cards
+      let cardIcon = '📘';
 
       if (card.isChatboxAnswer) {
         cardType = 'data-chatbox-answer="true"';
@@ -265,7 +290,7 @@ class SyncUpSidebar {
           <div class="card-summary">
             <p>${this.escapeHtml(card.summary)}</p>
           </div>
-          
+
           ${card.keyPoints && card.keyPoints.length > 0 ? `
             <div class="card-section">
               <h5>${card.isChatboxAnswer ? 'Additional Info' : 'Key Points'}</h5>
@@ -281,7 +306,7 @@ class SyncUpSidebar {
               <p class="use-case-text">${this.escapeHtml(card.useCase)}</p>
             </div>
           ` : ''}
-          
+
           ${card.resources && card.resources.length > 0 ? `
             <div class="card-section">
               <h5>Resources</h5>
@@ -292,10 +317,48 @@ class SyncUpSidebar {
           ` : ''}
         </div>
       </div>
-    `;
-    }).join('');
+      `;
+    };
 
-    listContainer.innerHTML = cardsHTML;
+    // Build the HTML
+    let html = '';
+
+    // Recent cards section
+    if (recentCards.length > 0) {
+      html += '<div class="recent-cards-section">';
+      if (olderCards.length > 0) {
+        html += '<div class="section-header">Recent Cards</div>';
+      }
+      const recentStartIndex = this.contextualCards.length - recentCards.length;
+      recentCards.forEach((card, i) => {
+        html += generateCardHTML(card, recentStartIndex + i);
+      });
+      html += '</div>';
+    }
+
+    // Older cards collapsible section
+    if (olderCards.length > 0) {
+      html += `
+        <div class="older-cards-section">
+          <div class="older-cards-toggle" id="older-cards-toggle">
+            <div style="display: flex; align-items: center;">
+              <span class="older-cards-toggle-text">Earlier Cards</span>
+              <span class="older-cards-count">${olderCards.length}</span>
+            </div>
+            <span class="older-cards-arrow">▶</span>
+          </div>
+          <div class="older-cards-list" id="older-cards-list">
+      `;
+      olderCards.forEach((card, i) => {
+        html += generateCardHTML(card, i);
+      });
+      html += `
+          </div>
+        </div>
+      `;
+    }
+
+    listContainer.innerHTML = html;
     console.log('✅ Cards HTML rendered to DOM');
     console.log('📊 Total cards rendered:', this.contextualCards.length);
     console.log('📊 List container innerHTML length:', listContainer.innerHTML.length);
@@ -309,7 +372,17 @@ class SyncUpSidebar {
         this.toggleCard(index);
       });
     });
-    
+
+    // Add toggle for older cards section
+    const olderCardsToggle = document.getElementById('older-cards-toggle');
+    const olderCardsList = document.getElementById('older-cards-list');
+    if (olderCardsToggle && olderCardsList) {
+      olderCardsToggle.addEventListener('click', () => {
+        olderCardsToggle.classList.toggle('expanded');
+        olderCardsList.classList.toggle('expanded');
+      });
+    }
+
     // Scroll to bottom to show latest cards
     listContainer.scrollTop = listContainer.scrollHeight;
   }
