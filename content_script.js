@@ -279,18 +279,32 @@ class SyncUpSidebar {
               </div>
             </div>
             <div class="chat-answer">
-              <div class="chat-bubble chat-bubble-answer ${item.expanded ? 'expanded' : ''}">
-                <div class="chat-preview-text">${this.escapeHtml(truncatedSummary)}</div>
-                <div class="chat-read-more-btn" data-chat-index="${originalIndex}">Read more</div>
+              <div class="context-card-compact chat-answer-card ${item.expanded ? 'expanded' : ''}"
+                   data-index="${originalIndex}"
+                   data-id="${item.id}"
+                   data-chatbox-answer="true">
+                <div class="card-compact-header">
+                  <span class="card-icon-compact">💬</span>
+                  <h4 class="card-topic-compact">Answer</h4>
+                </div>
+                <div class="card-preview-text">${this.escapeHtml(truncatedSummary)}</div>
+                <div class="read-more-btn" data-card-index="${originalIndex}">Read more</div>
 
-                <div class="chat-full-content" style="display: ${item.expanded ? 'block' : 'none'}">
-                  <p>${this.escapeHtml(item.summary)}</p>
+                <div class="card-full-content" style="display: ${item.expanded ? 'block' : 'none'}">
+                  <div class="card-summary">
+                    <p>${this.escapeHtml(item.summary)}</p>
+                  </div>
+
                   ${item.keyPoints && item.keyPoints.length > 0 ? `
-                    <ul class="chat-key-points">
-                      ${item.keyPoints.map(point => `<li>${this.escapeHtml(point)}</li>`).join('')}
-                    </ul>
+                    <div class="card-section">
+                      <h5>Key Points</h5>
+                      <ul class="key-points-list">
+                        ${item.keyPoints.map(point => `<li>${this.escapeHtml(point)}</li>`).join('')}
+                      </ul>
+                    </div>
                   ` : ''}
-                  <div class="chat-read-less-btn" data-chat-index="${originalIndex}">Show less</div>
+
+                  <div class="read-less-btn" data-card-index="${originalIndex}">Show less</div>
                 </div>
               </div>
             </div>
