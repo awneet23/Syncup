@@ -213,10 +213,6 @@ docker build -t syncup .
 docker run -p 3000:3000 syncup
 ```
 
-## License
-
-MIT License
-
 ## Acknowledgments
 
 Built for hackathon submission using:
