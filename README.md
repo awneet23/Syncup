@@ -52,6 +52,7 @@ git clone https://github.com/yourusername/syncup.git
 cd syncup
 ```
 
+
 2. Add your API keys in `background.js` (around line 18-19):
 ```javascript
 this.GEMINI_API_KEY = 'your_gemini_api_key_here';
