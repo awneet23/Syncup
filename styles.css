@@ -433,11 +433,18 @@
 
 .contextual-cards-list {
   padding: 20px;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Placeholder */
+/* Placeholder takes full height to prevent scrolling when empty */
 .placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
   text-align: center;
   padding: 80px 24px;
   color: #9aa0a6;
@@ -1194,28 +1201,23 @@
   text-shadow: 0 0 10px rgba(138, 180, 248, 0.5);
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - sleek 1px width */
 .sidebar-content::-webkit-scrollbar {
-  width: 8px;
+  width: 1px;
 }
 
 .sidebar-content::-webkit-scrollbar-track {
-  background: rgba(32, 33, 36, 0.3);
-  border-radius: 4px;
+  background: transparent;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, 
-    rgba(138, 180, 248, 0.5) 0%, 
-    rgba(138, 180, 248, 0.3) 100%);
-  border-radius: 4px;
+  background: rgba(138, 180, 248, 0.4);
+  border-radius: 1px;
   transition: background 0.3s ease;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, 
-    rgba(138, 180, 248, 0.7) 0%, 
-    rgba(138, 180, 248, 0.5) 100%);
+  background: rgba(138, 180, 248, 0.6);
 }
 
 /* Responsive adjustments */
