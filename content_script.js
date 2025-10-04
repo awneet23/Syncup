@@ -82,9 +82,9 @@ class SyncUpSidebar {
 
     // Sidebar HTML structure
     this.sidebarElement.innerHTML = `
-      <div class="sidebar-header">
-        <div class="header-top">
-          <h3>&#x1F50D; SyncUp</h3>
+      <div class="sidebar-header" style = "padding: 0px; border-bottom: none;">
+        <div class="header-top" style = "margin-bottom:-20px;">
+          <h3 style = "margin-left:25px;"> SyncUp</h3>
           <div class="sidebar-controls">
             <span class="control-icon start-icon" id="sidebarStartBtn" title="Start">
             <img src="https://img.icons8.com/?size=30&id=99cTBfGlewZU&format=png&color=40C057" alt="Start" > </img>
