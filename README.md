@@ -4,9 +4,9 @@ A Chrome extension that captures conversations in Google Meet and automatically 
 
 ## Resources
 
-- Demo video: https://www.youtube.com/watch?v=D6b2hut_GNA
+- Demo video: https://youtu.be/NgmFNfwHOZI
 - Landing Page and installation: https://rohit026.github.io/
-- Presentation link: https://drive.google.com/file/d/18rd_BkBmRz1-FO1FJWXL6GQwilGCrfZr/view?usp=sharing
+- Presentation link: https://drive.google.com/file/d/1bPaV5dkZIV4J0YWZTHp43G4R7cHjVM-i/view?usp=sharing
 - Installation link (Chrome extension in review by the Google team): https://drive.google.com/drive/folders/10416hfb4tRKtLIdB_TvXWAOM84pDJBkm?usp=sharing
 
 ## What It Does
@@ -62,8 +62,8 @@ The extension also includes an AI chatbox where you can ask questions about the 
 
 1. Clone this repository
 ```bash
-git clone https://github.com/yourusername/syncup.git
-cd syncup
+git clone https://github.com/awneet23/Syncup.git
+cd Syncup
 ```
 
 
