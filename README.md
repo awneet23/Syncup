@@ -4,9 +4,10 @@ A Chrome extension that captures conversations in Google Meet and automatically 
 
 ## Resources
 
-Demo video : https://www.youtube.com/watch?v=D6b2hut_GNA
-Landing Page and installation : https://rohit026.github.io/
-Presentaion link : https://drive.google.com/file/d/18rd_BkBmRz1-FO1FJWXL6GQwilGCrfZr/view?usp=sharing
+- Demo video: https://www.youtube.com/watch?v=D6b2hut_GNA
+- Landing Page and installation: https://rohit026.github.io/
+- Presentation link: https://drive.google.com/file/d/18rd_BkBmRz1-FO1FJWXL6GQwilGCrfZr/view?usp=sharing
+- Installation link (Chrome extension in review by the Google team): https://drive.google.com/drive/folders/10416hfb4tRKtLIdB_TvXWAOM84pDJBkm?usp=sharing
 
 ## What It Does
 
@@ -41,6 +42,13 @@ The extension also includes an AI chatbox where you can ask questions about the 
 - Toggle button to show/hide the sidebar
 - Start/Stop/Clear controls
 - Smooth animations and modern design
+
+## Upcoming Features (1 month)
+
+- Meeting Memory for post-meeting analysis, questions, and cross-meeting reference
+- Multi-format attachments like PDFs, JPGs, MP4s, PPTs, etc.
+- Enhanced UI with new themes and trending skins for Google meetings.
+- Multi-platform support for Zoom, Microsoft teams, etc.
 
 ## Technology Stack
 
@@ -210,14 +218,6 @@ In `content_script.js`:
 - `startMeetCaptionCapture()` - Captures Google Meet captions
 - `startMicrophoneRecognition()` - Captures user's speech
 - `updateContextualCards()` - Renders cards in sidebar
-
-## Docker Support
-
-Build and run:
-```bash
-docker build -t syncup .
-docker run -p 3000:3000 syncup
-```
 
 ## Acknowledgments
 
