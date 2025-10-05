@@ -15,8 +15,8 @@ class SyncUpBackground {
     this.mediaRecorder = null;
     
     // API configurations - User needs to add their keys
-    this.GEMINI_API_KEY = 'AIzaSyAE544iRSwjAlHjkIyCPkQdQA2fVLtQhfc'; // Add your Gemini API key here
-    this.CEREBRAS_API_KEY = 'csk-eknd5j92nkhm5fm5td2y3j22cj3npjc365hcnvhrcxn9he85'; // Add your Cerebras API key here
+    this.GEMINI_API_KEY = ''; // Add your Gemini API key here
+    this.CEREBRAS_API_KEY = ''; // Add your Cerebras API key here
     this.CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
     
     // Use real speech recognition instead of demo mode
