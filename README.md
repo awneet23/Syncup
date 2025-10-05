@@ -1,6 +1,6 @@
 # SyncUp - AI Meeting Assistant for Google Meet
 
-A Chrome extension that captures conversations in Google Meet and automatically generates contextual information cards using AI. Built with Gemini API for transcription and Cerebras with Meta Llama for Fast and intelligent content generation.
+A Chrome extension that captures conversations in Google Meet and automatically generates contextual information cards using AI. Built with Gemini API for transcription and Cerebras with Meta Llama/gpt-oss-120b for Fast and intelligent content generation.
 
 ## What It Does
 
@@ -40,7 +40,7 @@ The extension also includes an AI chatbox where you can ask questions about the 
 
 - Chrome Extension (Manifest V3)
 - Gemini API for transcription
-- Cerebras API with Meta Llama 3.1-8B for content generation
+- Cerebras API with Meta Llama 3.1-8B/gpt-oss-120b for content generation
 - Web Speech API for local speech capture
 - Google Meet caption integration
 
@@ -125,8 +125,8 @@ The extension has three main components:
 
 ## API Integration
 
-**Cerebras API with Meta Llama**
-- Model: gpt-oss-120b (Llama 3.1-8B)
+**Cerebras API with Meta Llama/gpt-oss-120b**
+- Model: gpt-oss-120b / Llama 3.1-8B
 - Used for keyword extraction from transcripts
 - Generates comprehensive explanations for detected topics
 - Powers the chatbox Q&A functionality
@@ -147,8 +147,8 @@ The extension has three main components:
 
 **Sponsor Technology Integration**
 - Gemini API: Configured for AI processing
-- Cerebras API: Core inference engine using Llama 3.1-8B
-- Meta Llama: Powers all content generation
+- Cerebras API: Core inference engine using Llama 3.1-8B/gpt-oss-120b
+- Meta Llama/gpt-oss-120b: Powers all content generation
 - Docker: Containerization ready
 
 **Innovation**
@@ -219,6 +219,7 @@ Built for hackathon submission using:
 - Google Gemini API
 - Cerebras Cloud Platform
 - Meta Llama 3.1-8B model
+- gpt-oss-120b
 - Chrome Extension APIs
 
 ---
