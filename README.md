@@ -2,6 +2,12 @@
 
 A Chrome extension that captures conversations in Google Meet and automatically generates contextual information cards using AI. Built with Gemini API for transcription and Cerebras with Meta Llama/gpt-oss-120b for Fast and intelligent content generation.
 
+## Resources
+
+Demo video : https://www.youtube.com/watch?v=D6b2hut_GNA
+Landing Page and installation : https://rohit026.github.io/
+Presentaion link : https://drive.google.com/file/d/18rd_BkBmRz1-FO1FJWXL6GQwilGCrfZr/view?usp=sharing
+
 ## What It Does
 
 SyncUp listens to your Google Meet conversations and automatically creates information cards about topics mentioned. When someone talks about Docker, Kubernetes, or any technical concept, the extension generates a detailed explanation card with key points, use cases, and resources - like having ChatGPT instantly explain things during your meeting.
