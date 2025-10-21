@@ -86,7 +86,7 @@ class SyncUpUniversal {
     try {
       const result = await chrome.storage.sync.get(['syncup_settings']);
       this.settings = result.syncup_settings || {
-        geminiApiKey: 'AIzaSyClTRj0FVD-fDtuD47ZyGS0Mm2pgU4bRGg',
+        geminiApiKey: '',
         enableUniversalContext: true,
         enableActionItems: true,
         autoDeleteHistory: true,
